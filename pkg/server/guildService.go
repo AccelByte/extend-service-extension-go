@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type GuildServiceServer struct {
+type GuildServiceServerImpl struct {
 	pb.UnimplementedGuildServiceServer
 	tokenRepo   repository.TokenRepository
 	configRepo  repository.ConfigRepository
@@ -28,15 +28,15 @@ type GuildServiceServer struct {
 func NewGuildServiceServer(
 	tokenRepo *repository.TokenRepository, configRepo *repository.ConfigRepository,
 	refreshRepo *repository.RefreshTokenRepository,
-) (*GuildServiceServer, error) {
-	return &GuildServiceServer{
+) (*GuildServiceServerImpl, error) {
+	return &GuildServiceServerImpl{
 		tokenRepo:   *tokenRepo,
 		configRepo:  *configRepo,
 		refreshRepo: *refreshRepo,
 	}, nil
 }
 
-func (g GuildServiceServer) CreateOrUpdateGuildProgress(
+func (g GuildServiceServerImpl) CreateOrUpdateGuildProgress(
 	ctx context.Context, req *pb.CreateOrUpdateGuildProgressRequest,
 ) (*pb.CreateOrUpdateGuildProgressResponse, error) {
 	// Initialize the AccelByte CloudSave service
@@ -65,7 +65,7 @@ func (g GuildServiceServer) CreateOrUpdateGuildProgress(
 	return &pb.CreateOrUpdateGuildProgressResponse{GuildProgress: req.GuildProgress}, nil
 }
 
-func (g GuildServiceServer) GetGuildProgress(
+func (g GuildServiceServerImpl) GetGuildProgress(
 	ctx context.Context, req *pb.GetGuildProgressRequest,
 ) (*pb.GetGuildProgressResponse, error) {
 	// Initialize the AccelByte CloudSave service
