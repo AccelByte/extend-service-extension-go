@@ -124,7 +124,7 @@ func main() {
 		logrus.Fatalf("Error unable to login using clientId and clientSecret: %v", err)
 	}
 
-	// Register Filter Service
+	// Register Guild Service
 	guildServiceServer, err := server.NewGuildServiceServer(&tokenRepo, &configRepo, &refreshRepo)
 	if err != nil {
 		logrus.Fatalf("unable to create filter service server: %v", err)
