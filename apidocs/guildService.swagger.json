@@ -1,0 +1,168 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Guild Service API",
+    "version": "1.0"
+  },
+  "tags": [
+    {
+      "name": "GuildService"
+    }
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/guild/v1/progress": {
+      "post": {
+        "summary": "Update Guild progression",
+        "description": "Update Guild progression if not existed yet will create a new one",
+        "operationId": "GuildService_CreateOrUpdateGuildProgress",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/guildCreateOrUpdateGuildProgressResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/guildCreateOrUpdateGuildProgressRequest"
+            }
+          }
+        ],
+        "tags": [
+          "GuildService"
+        ]
+      }
+    },
+    "/guild/v1/progress/{guildId}": {
+      "get": {
+        "summary": "Get guild progression",
+        "description": "Get guild progression",
+        "operationId": "GuildService_GetGuildProgress",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/guildGetGuildProgressResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "guildId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "GuildService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "guildCreateOrUpdateGuildProgressRequest": {
+      "type": "object",
+      "properties": {
+        "guildId": {
+          "type": "string"
+        },
+        "guildProgress": {
+          "$ref": "#/definitions/guildGuildProgress"
+        }
+      }
+    },
+    "guildCreateOrUpdateGuildProgressResponse": {
+      "type": "object",
+      "properties": {
+        "guildProgress": {
+          "$ref": "#/definitions/guildGuildProgress"
+        }
+      }
+    },
+    "guildGetGuildProgressResponse": {
+      "type": "object",
+      "properties": {
+        "guildProgress": {
+          "$ref": "#/definitions/guildGuildProgress"
+        }
+      }
+    },
+    "guildGuildProgress": {
+      "type": "object",
+      "properties": {
+        "guildId": {
+          "type": "string"
+        },
+        "objectives": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  }
+}

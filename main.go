@@ -51,7 +51,7 @@ var (
 	metricsPort         = 8080
 	grpcServerPort      = 6565
 	grpcGatewayHTTPPort = 8000
-	serviceName         = server.GetEnv("OTEL_SERVICE_NAME", "CustomChatFilterServiceGoServerDocker")
+	serviceName         = server.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGoDocker")
 )
 
 func main() {
@@ -148,7 +148,7 @@ func main() {
 
 	// Start the gRPC-Gateway HTTP server
 	go func() {
-		swaggerDir := "pkg/pb" // Path to swagger directory
+		swaggerDir := "apidocs" // Path to swagger directory
 		grpcGatewayHTTPServer := newGRPCGatewayHTTPServer(fmt.Sprintf(":%d", grpcGatewayHTTPPort), grpcGateway, logrus.New(), swaggerDir)
 		logrus.Infof("Starting gRPC-Gateway HTTP server on port %d", grpcGatewayHTTPPort)
 		if err := grpcGatewayHTTPServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -259,7 +259,8 @@ func loggingMiddleware(logger *logrus.Logger, next http.Handler) http.Handler {
 func serveSwaggerUI(mux *http.ServeMux) {
 	swaggerUIDir := "third_party/swagger-ui"
 	fileServer := http.FileServer(http.Dir(swaggerUIDir))
-	mux.Handle("/apidocs/", http.StripPrefix("/apidocs", fileServer))
+	swaggerUiPath := fmt.Sprintf("/%s/apidocs/", server.GetEnv("BASE_PATH", "guild"))
+	mux.Handle(swaggerUiPath, http.StripPrefix(swaggerUiPath, fileServer))
 }
 
 func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
@@ -274,5 +275,6 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 		firstMatchingFile := matchingFiles[0]
 		http.ServeFile(w, r, firstMatchingFile)
 	})
-	mux.Handle("/apidocs/api.json", fileHandler)
+	apidocsPath := fmt.Sprintf("/%s/apidocs/api.json", server.GetEnv("BASE_PATH", "guild"))
+	mux.Handle(apidocsPath, fileHandler)
 }
