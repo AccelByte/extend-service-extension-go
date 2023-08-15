@@ -66,7 +66,7 @@ After starting the service, you can test it to make sure it's working correctly.
 We will use curl command to test our service. For example, to test `CreateOrUpdateGuildProgress` endpoint, you can run:
 
 ```bash
-$ curl -X POST http://localhost:8081/guild/v1/progress \
+$ curl -X POST http://localhost:8000/guild/v1/progress \
     -H 'Content-Type: application/json' \
     -d '{
       "guild_id": "my-guild-id",
@@ -82,7 +82,7 @@ $ curl -X POST http://localhost:8081/guild/v1/progress \
 And to test `GetGuildProgress` endpoint:
 
 ```bash
-$ curl -X GET http://localhost:8081/guild/v1/progress/my-guild-id
+$ curl -X GET http://localhost:8000/guild/v1/progress/my-guild-id
 ```
 
 You should see the updated guild progress in the response.

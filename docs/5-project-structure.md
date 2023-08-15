@@ -11,20 +11,18 @@ This chapter offers an overview of the Guild Service's project structure. Unders
 ├── go.sum
 ├── main.go
 ├── pkg
-│   ├── gateway
-│   │   └── gateway.go
 │   ├── pb                                     # Generated from proto file
 │   ├── proto
 │   │   ├── google                             # protobuf library 
 │   │   ├── protoc-gen-openapiv2               # protobuf library
-│   │   └── guildService.proto                 # you proto file, where you put API definition
-│   └── server
-│       ├── authServerInterceptor.go
-│       ├── guildService.go
-│       ├── logging.go
-│       ├── models.go
-│       ├── tracerProvider.go
-│       └── utils.go
+│   │   └── guildService.proto                 # your proto file, where you put API definition
+│   ├── common
+│   └── service
+│       ├── guildService.go                    # the implementation for the api spec written in your proto fie
+│       ├── guildService_test.go
+│       └── mocks                              # generated code by mockgen to help unit testing
+│           ├── repo_mock.go
+│           └── server_mock.go
 └── third_party
     ├── embed.go
     └── swagger-ui                             # directory containing swagger UI
@@ -38,10 +36,10 @@ The most important files and directories are:
 - `go.mod` and `go.sum`: These files are used by Go's dependency management system. They list the dependencies of our project.
 - `main.go`: This is the main entry point for our service. It initializes and starts our server and gateway.
 - `pkg`: This directory contains the main code of our service.
-- `pkg/gateway`: This directory contains the code for our gRPC-Gateway, which translates HTTP/JSON requests into gRPC and vice versa.
+- `pkg/common/gateway.go`: Contains the code for our gRPC-Gateway, which translates HTTP/JSON requests into gRPC and vice versa.
 - `pkg/pb`: This directory contains the Go code that was generated from our .proto files by the protoc compiler.
 - `pkg/proto`: This directory contains our .proto files, which define our gRPC service and messages.
-- `pkg/server/guildService.go`: This directory contains the implementation of our gRPC service.
+- `pkg/service/guildService.go`: This directory contains the implementation of our gRPC service.
 - `third_party`: This directory contains third party libraries that are used by our service.
 
 - In the following chapters, we will discuss how to define and implement new services and messages in our .proto files, how to generate Go code from these .proto files, and how to implement these services in our server.

@@ -1,4 +1,4 @@
-module github.com/001extend/extend-custom-guild-service
+module extend-custom-guild-service
 
 go 1.20
 
@@ -65,6 +65,7 @@ require (
 	go.mongodb.org/mongo-driver v1.5.1 // indirect
 	go.opentelemetry.io/contrib/propagators/aws v1.4.0 // indirect
 	go.opentelemetry.io/otel/metric v0.38.1 // indirect
+	go.uber.org/mock v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect

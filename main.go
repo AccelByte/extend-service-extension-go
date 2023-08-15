@@ -6,7 +6,10 @@ package main
 
 import (
 	"context"
+	"extend-custom-guild-service/pkg/service"
+	"extend-custom-guild-service/pkg/storage"
 	"fmt"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/cloudsave"
 	"log"
 	"net"
 	"net/http"
@@ -16,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/001extend/extend-custom-guild-service/pkg/gateway"
+	"extend-custom-guild-service/pkg/common"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/repository"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
@@ -36,8 +39,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	pb "github.com/001extend/extend-custom-guild-service/pkg/pb"
-	"github.com/001extend/extend-custom-guild-service/pkg/server"
+	pb "extend-custom-guild-service/pkg/pb"
 
 	sdkAuth "github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth"
 	prometheusGrpc "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -51,7 +53,7 @@ var (
 	metricsPort         = 8080
 	grpcServerPort      = 6565
 	grpcGatewayHTTPPort = 8000
-	serviceName         = server.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGoDocker")
+	serviceName         = common.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGoDocker")
 )
 
 func main() {
@@ -75,12 +77,12 @@ func main() {
 	unaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		otelgrpc.UnaryServerInterceptor(),
 		prometheusGrpc.UnaryServerInterceptor,
-		logging.UnaryServerInterceptor(server.InterceptorLogger(logrus.New()), opts...),
+		logging.UnaryServerInterceptor(common.InterceptorLogger(logrus.New()), opts...),
 	}
 	streamServerInterceptors := []grpc.StreamServerInterceptor{
 		otelgrpc.StreamServerInterceptor(),
 		prometheusGrpc.StreamServerInterceptor,
-		logging.StreamServerInterceptor(server.InterceptorLogger(logrus.New()), opts...),
+		logging.StreamServerInterceptor(common.InterceptorLogger(logrus.New()), opts...),
 	}
 
 	// Preparing the IAM authorization
@@ -88,20 +90,20 @@ func main() {
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
 	var refreshRepo repository.RefreshTokenRepository = sdkAuth.DefaultRefreshTokenImpl()
 
-	if strings.ToLower(server.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
+	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
 		// unaryServerInterceptors = append(unaryServerInterceptors, server.EnsureValidToken) // deprecated
 
-		refreshInterval := server.GetEnvInt("REFRESH_INTERVAL", 600)
+		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		authService := iam.OAuth20Service{
 			Client:           factory.NewIamClient(configRepo),
 			ConfigRepository: configRepo,
 			TokenRepository:  tokenRepo,
 		}
-		server.Validator = validator.NewTokenValidator(authService, time.Duration(refreshInterval)*time.Second)
-		server.Validator.Initialize()
+		common.Validator = validator.NewTokenValidator(authService, time.Duration(refreshInterval)*time.Second)
+		common.Validator.Initialize()
 
-		unaryServerInterceptors = append(unaryServerInterceptors, server.UnaryAuthServerIntercept)
-		streamServerInterceptors = append(streamServerInterceptors, server.StreamAuthServerIntercept)
+		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
+		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)
 		logrus.Infof("added auth interceptors")
 	}
 
@@ -124,13 +126,17 @@ func main() {
 		logrus.Fatalf("Error unable to login using clientId and clientSecret: %v", err)
 	}
 
-	// Register Guild Service
-	guildServiceServer, err := server.NewGuildServiceServer(&tokenRepo, &configRepo, &refreshRepo)
-	if err != nil {
-		logrus.Fatalf("unable to create filter service server: %v", err)
-
-		return
+	// Initialize the AccelByte CloudSave service
+	adminGameRecordService := cloudsave.AdminGameRecordService{
+		Client:                 factory.NewCloudsaveClient(configRepo),
+		TokenRepository:        tokenRepo,
+		RefreshTokenRepository: refreshRepo,
 	}
+
+	storage := storage.NewCloudSaveStorage(&adminGameRecordService)
+
+	// Register Guild Service
+	guildServiceServer := service.NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, storage)
 	pb.RegisterGuildServiceServer(s, guildServiceServer)
 
 	// Enable gRPC Reflection
@@ -141,7 +147,7 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(s, health.NewServer())
 
 	// Create a new HTTP server for the gRPC-Gateway
-	grpcGateway, err := gateway.NewGateway(ctx, fmt.Sprintf("localhost:%d", grpcServerPort))
+	grpcGateway, err := common.NewGateway(ctx, fmt.Sprintf("localhost:%d", grpcServerPort))
 	if err != nil {
 		logrus.Fatalf("Failed to create gRPC-Gateway: %v", err)
 	}
@@ -173,7 +179,7 @@ func main() {
 	logrus.Infof("serving prometheus metrics at: (:%d%s)", metricsPort, metricsEndpoint)
 
 	// Set Tracer Provider
-	tracerProvider, err := server.NewTracerProvider(serviceName, environment, id)
+	tracerProvider, err := common.NewTracerProvider(serviceName, environment, id)
 	if err != nil {
 		logrus.Fatalf("failed to create tracer provider: %v", err)
 
@@ -259,7 +265,7 @@ func loggingMiddleware(logger *logrus.Logger, next http.Handler) http.Handler {
 func serveSwaggerUI(mux *http.ServeMux) {
 	swaggerUIDir := "third_party/swagger-ui"
 	fileServer := http.FileServer(http.Dir(swaggerUIDir))
-	swaggerUiPath := fmt.Sprintf("/%s/apidocs/", server.GetEnv("BASE_PATH", "guild"))
+	swaggerUiPath := fmt.Sprintf("/%s/apidocs/", common.GetEnv("BASE_PATH", "guild"))
 	mux.Handle(swaggerUiPath, http.StripPrefix(swaggerUiPath, fileServer))
 }
 
@@ -275,6 +281,6 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 		firstMatchingFile := matchingFiles[0]
 		http.ServeFile(w, r, firstMatchingFile)
 	})
-	apidocsPath := fmt.Sprintf("/%s/apidocs/api.json", server.GetEnv("BASE_PATH", "guild"))
+	apidocsPath := fmt.Sprintf("/%s/apidocs/api.json", common.GetEnv("BASE_PATH", "guild"))
 	mux.Handle(apidocsPath, fileHandler)
 }

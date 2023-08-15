@@ -2,13 +2,13 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-package gateway
+package common
 
 import (
 	"context"
 	"net/http"
 
-	pb "github.com/001extend/extend-custom-guild-service/pkg/pb"
+	pb "extend-custom-guild-service/pkg/pb"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )

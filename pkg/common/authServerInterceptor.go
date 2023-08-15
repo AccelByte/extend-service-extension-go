@@ -2,7 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-package server
+package common
 
 import (
 	"context"
@@ -32,7 +32,7 @@ func UnaryAuthServerIntercept(ctx context.Context, req interface{}, info *grpc.U
 	authorization := meta["authorization"][0]
 	token := strings.TrimPrefix(authorization, "Bearer ")
 
-	namespace := getNamespace()
+	namespace := GetNamespace()
 	permission := getRequiredPermission()
 
 	err := Validator.Validate(token, &permission, &namespace, nil)
@@ -56,7 +56,7 @@ func StreamAuthServerIntercept(srv interface{}, ss grpc.ServerStream, info *grpc
 	authorization := meta["authorization"][0]
 	token := strings.TrimPrefix(authorization, "Bearer ")
 
-	namespace := getNamespace()
+	namespace := GetNamespace()
 	permission := getRequiredPermission()
 	var userId *string
 
@@ -72,7 +72,7 @@ func getAction() int {
 	return GetEnvInt("AB_ACTION", 2)
 }
 
-func getNamespace() string {
+func GetNamespace() string {
 	return GetEnv("AB_NAMESPACE", "accelbyte")
 }
 
@@ -83,6 +83,6 @@ func getResourceName() string {
 func getRequiredPermission() validator.Permission {
 	return validator.Permission{
 		Action:   getAction(),
-		Resource: fmt.Sprintf("NAMESPACE:%s:%s", getNamespace(), getResourceName()),
+		Resource: fmt.Sprintf("NAMESPACE:%s:%s", GetNamespace(), getResourceName()),
 	}
 }
