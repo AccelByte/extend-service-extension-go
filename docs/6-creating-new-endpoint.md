@@ -86,5 +86,5 @@ However, in our setup, we've simplified this with a `Makefile`.
 
 
 ```bash
-make protoc
+make proto
 ```
