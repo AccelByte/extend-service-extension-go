@@ -54,3 +54,9 @@ imagex_push:
 	docker buildx build -t ${REPO_URL}:${IMAGE_TAG} --platform linux/arm64/v8,linux/amd64 --push .
 	docker buildx rm --keep-state $(BUILDER)
 
+test: proto
+	docker run -t --rm -u $$(id -u):$$(id -g) \
+		-v $$(pwd):/data/ -w /data/ \
+		-e GOCACHE=/data/.cache/go-build \
+		$(GOLANG_DOCKER_IMAGE) sh -c "go test -v ./..."
+

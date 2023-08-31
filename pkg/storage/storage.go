@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"extend-custom-guild-service/pkg/common"
 	pb "extend-custom-guild-service/pkg/pb"
+
 	"github.com/AccelByte/accelbyte-go-sdk/cloudsave-sdk/pkg/cloudsaveclient/admin_game_record"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/cloudsave"
 	"google.golang.org/grpc/codes"
@@ -65,5 +66,6 @@ func (c *CloudsaveStorage) GetGuildProgress(key string) (*pb.GuildProgress, erro
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error unmarshalling value into GuildProgress: %v", err)
 	}
+
 	return &guildProgress, nil
 }

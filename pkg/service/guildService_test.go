@@ -1,3 +1,6 @@
+// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
 package service
 
 import (
@@ -6,13 +9,14 @@ import (
 	pb "extend-custom-guild-service/pkg/pb"
 	"extend-custom-guild-service/pkg/service/mocks"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"testing"
 )
 
 //go:generate mockgen -destination ./mocks/server_mock.go -package mocks extend-custom-guild-service/pkg/pb GuildServiceServer
@@ -24,11 +28,13 @@ type cloudsaveStorageMock struct {
 
 func (c *cloudsaveStorageMock) GetGuildProgress(key string) (*pb.GuildProgress, error) {
 	args := c.Called(key)
+
 	return args.Get(0).(*pb.GuildProgress), args.Error(1)
 }
 
 func (c *cloudsaveStorageMock) SaveGuildProgress(key string, value *pb.GuildProgress) error {
 	args := c.Called(key, value)
+
 	return args.Error(0)
 }
 
