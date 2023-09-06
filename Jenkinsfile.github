@@ -1,5 +1,5 @@
 githubOwner = 'AccelByte'
-githubRepo = 'extend-custom-service-go'
+githubRepo = 'extend-service-extension-go'
 githubSsh = 'accelbyte-sdk-sdkbuild-ssh'
 
 githubUrl = "git@github.com:${githubOwner}/${githubRepo}.git"

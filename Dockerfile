@@ -23,14 +23,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=proto /build/pkg/pb pkg/pb
-RUN env GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o extend-custom-service-go_$TARGETOS-$TARGETARCH
+RUN env GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o extend-service-extension-go_$TARGETOS-$TARGETARCH
 
 
 FROM alpine:3.17.0
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
-COPY --from=builder /build/extend-custom-service-go_$TARGETOS-$TARGETARCH extend-custom-service-go
+COPY --from=builder /build/extend-service-extension-go_$TARGETOS-$TARGETARCH extend-service-extension-go
 COPY --from=builder /build/apidocs apidocs
 COPY third_party third_party
 # Plugin arch gRPC server port
@@ -38,4 +38,4 @@ EXPOSE 6565
 # Prometheus /metrics web server port
 EXPOSE 8080
 EXPOSE 8000
-CMD [ "/app/extend-custom-service-go" ]
+CMD [ "/app/extend-service-extension-go" ]
