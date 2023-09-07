@@ -42,24 +42,26 @@ func (g GuildServiceServerImpl) CreateOrUpdateGuildProgress(
 ) (*pb.CreateOrUpdateGuildProgressResponse, error) {
 	// Create or update guild progress in CloudSave
 	// This assumes we're storing guild progress as a JSON object
-	guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildId)
+	namespace := req.Namespace
+	guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildProgress.GuildId)
 	guildProgressValue := req.GuildProgress
-	err := g.storage.SaveGuildProgress(guildProgressKey, guildProgressValue)
+	guildProgress, err := g.storage.SaveGuildProgress(namespace, guildProgressKey, guildProgressValue)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error updating guild progress: %v", err)
 	}
 
 	// Return the updated guild progress
-	return &pb.CreateOrUpdateGuildProgressResponse{GuildProgress: req.GuildProgress}, nil
+	return &pb.CreateOrUpdateGuildProgressResponse{GuildProgress: guildProgress}, nil
 }
 
 func (g GuildServiceServerImpl) GetGuildProgress(
 	ctx context.Context, req *pb.GetGuildProgressRequest,
 ) (*pb.GetGuildProgressResponse, error) {
 	// Get guild progress in CloudSave
+	namespace := req.Namespace
 	guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildId)
 
-	guildProgress, err := g.storage.GetGuildProgress(guildProgressKey)
+	guildProgress, err := g.storage.GetGuildProgress(namespace, guildProgressKey)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error getting guild progress: %v", err)
 	}

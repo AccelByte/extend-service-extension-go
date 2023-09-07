@@ -8,6 +8,8 @@ import (
 	"context"
 	"net/http"
 
+	"google.golang.org/grpc/credentials/insecure"
+
 	pb "extend-custom-guild-service/pkg/pb"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -20,7 +22,7 @@ type Gateway struct {
 
 func NewGateway(ctx context.Context, grpcServerEndpoint string) (*Gateway, error) {
 	mux := runtime.NewServeMux()
-	opts := []grpc.DialOption{grpc.WithInsecure()}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	err := pb.RegisterGuildServiceHandlerFromEndpoint(ctx, mux, grpcServerEndpoint, opts)
 	if err != nil {
 		return nil, err

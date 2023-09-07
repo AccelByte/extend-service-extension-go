@@ -20,7 +20,7 @@
     "application/json"
   ],
   "paths": {
-    "/guild/v1/progress": {
+    "/guild/v1/public/namespace/{namespace}/progress": {
       "post": {
         "summary": "Update Guild progression",
         "description": "Update Guild progression if not existed yet will create a new one",
@@ -41,20 +41,36 @@
         },
         "parameters": [
           {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
             "name": "body",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/guildCreateOrUpdateGuildProgressRequest"
+              "type": "object",
+              "properties": {
+                "guildProgress": {
+                  "$ref": "#/definitions/guildGuildProgress"
+                }
+              }
             }
           }
         ],
         "tags": [
           "GuildService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     },
-    "/guild/v1/progress/{guildId}": {
+    "/guild/v1/public/namespace/{namespace}/progress/{guildId}": {
       "get": {
         "summary": "Get guild progression",
         "description": "Get guild progression",
@@ -75,6 +91,12 @@
         },
         "parameters": [
           {
+            "name": "namespace",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
             "name": "guildId",
             "in": "path",
             "required": true,
@@ -83,22 +105,16 @@
         ],
         "tags": [
           "GuildService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     }
   },
   "definitions": {
-    "guildCreateOrUpdateGuildProgressRequest": {
-      "type": "object",
-      "properties": {
-        "guildId": {
-          "type": "string"
-        },
-        "guildProgress": {
-          "$ref": "#/definitions/guildGuildProgress"
-        }
-      }
-    },
     "guildCreateOrUpdateGuildProgressResponse": {
       "type": "object",
       "properties": {
@@ -119,6 +135,9 @@
       "type": "object",
       "properties": {
         "guildId": {
+          "type": "string"
+        },
+        "namespace": {
           "type": "string"
         },
         "objectives": {
@@ -159,7 +178,7 @@
     }
   },
   "securityDefinitions": {
-    "bearer": {
+    "Bearer": {
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"

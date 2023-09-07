@@ -26,16 +26,16 @@ type cloudsaveStorageMock struct {
 	mock.Mock
 }
 
-func (c *cloudsaveStorageMock) GetGuildProgress(key string) (*pb.GuildProgress, error) {
-	args := c.Called(key)
+func (c *cloudsaveStorageMock) GetGuildProgress(namespace string, key string) (*pb.GuildProgress, error) {
+	args := c.Called(namespace, key)
 
 	return args.Get(0).(*pb.GuildProgress), args.Error(1)
 }
 
-func (c *cloudsaveStorageMock) SaveGuildProgress(key string, value *pb.GuildProgress) error {
-	args := c.Called(key, value)
+func (c *cloudsaveStorageMock) SaveGuildProgress(namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error) {
+	args := c.Called(namespace, key, value)
 
-	return args.Error(0)
+	return args.Get(0).(*pb.GuildProgress), args.Error(1)
 }
 
 func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
@@ -49,7 +49,7 @@ func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 		{
 			name: "successful save",
 			req: &pb.CreateOrUpdateGuildProgressRequest{
-				GuildId: "testId",
+				Namespace: "testNamespace",
 				GuildProgress: &pb.GuildProgress{
 					GuildId:    "testId",
 					Objectives: map[string]int32{"testGoal": 1},
@@ -61,7 +61,7 @@ func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 		{
 			name: "failed save",
 			req: &pb.CreateOrUpdateGuildProgressRequest{
-				GuildId: "testId",
+				Namespace: "testNamespace",
 				GuildProgress: &pb.GuildProgress{
 					GuildId:    "testId",
 					Objectives: map[string]int32{"testGoal": 1},
@@ -84,8 +84,9 @@ func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 			storage := new(cloudsaveStorageMock)
 			service := NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, storage)
 
-			guildProgressKey := fmt.Sprintf("guildProgress_%s", tt.req.GuildId)
-			storage.On("SaveGuildProgress", guildProgressKey, tt.req.GuildProgress).Return(tt.expectedErr)
+			namespace := "testNamespace"
+			guildProgressKey := fmt.Sprintf("guildProgress_%s", tt.req.GuildProgress.GuildId)
+			storage.On("SaveGuildProgress", namespace, guildProgressKey, tt.req.GuildProgress).Return(tt.req.GetGuildProgress(), tt.expectedErr)
 
 			// when
 			res, err := service.CreateOrUpdateGuildProgress(context.Background(), tt.req)
@@ -113,27 +114,31 @@ func TestGuildServiceServerImpl_GetGuildProgress(t *testing.T) {
 		{
 			name: "valid guild id",
 			req: &pb.GetGuildProgressRequest{
-				GuildId: "testId",
+				Namespace: "testNamespace",
+				GuildId:   "testId",
 			},
 			mockSetup: func(storage *cloudsaveStorageMock, guildId string) {
-				storage.On("GetGuildProgress", "guildProgress_"+guildId).
+				storage.On("GetGuildProgress", "testNamespace", "guildProgress_"+guildId).
 					Return(&pb.GuildProgress{
 						GuildId:    "testId",
+						Namespace:  "testNamespace",
 						Objectives: map[string]int32{"testGoal": 1},
 					}, nil)
 			},
 			expectedRes: &pb.GuildProgress{
 				GuildId:    "testId",
+				Namespace:  "testNamespace",
 				Objectives: map[string]int32{"testGoal": 1},
 			},
 		},
 		{
 			name: "invalid guild id",
 			req: &pb.GetGuildProgressRequest{
-				GuildId: "testId",
+				Namespace: "testNamespace",
+				GuildId:   "testId",
 			},
 			mockSetup: func(storage *cloudsaveStorageMock, guildId string) {
-				storage.On("GetGuildProgress", "guildProgress_"+guildId).
+				storage.On("GetGuildProgress", "testNamespace", "guildProgress_"+guildId).
 					Return(&pb.GuildProgress{}, errors.New("error"))
 			},
 			expectedErr: status.Errorf(codes.Internal, "Error getting guild progress: error"),

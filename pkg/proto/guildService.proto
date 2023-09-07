@@ -13,33 +13,50 @@ package accelbyte.custom.guild;
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "permission.proto";
 
 service GuildService {
 
   rpc CreateOrUpdateGuildProgress (CreateOrUpdateGuildProgressRequest) returns (CreateOrUpdateGuildProgressResponse) {
+    option (action) = CREATE;
+    option (resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      post: "/guild/v1/progress"
+      post: "/guild/v1/public/namespace/{namespace}/progress"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Update Guild progression"
       description: "Update Guild progression if not existed yet will create a new one"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      }
     };
   }
 
   rpc GetGuildProgress (GetGuildProgressRequest) returns (GetGuildProgressResponse) {
+    option (action) = READ;
+    option (resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      get: "/guild/v1/progress/{guild_id}"
+      get: "/guild/v1/public/namespace/{namespace}/progress/{guild_id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get guild progression"
       description: "Get guild progression"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      }
     };
   }
 }
 
 message CreateOrUpdateGuildProgressRequest {
-  string guild_id = 1;
+  string namespace = 1;
   GuildProgress guild_progress = 2;
 }
 
@@ -48,7 +65,8 @@ message CreateOrUpdateGuildProgressResponse {
 }
 
 message GetGuildProgressRequest {
-  string guild_id = 1;
+  string namespace = 1;
+  string guild_id = 2;
 }
 
 message GetGuildProgressResponse {
@@ -57,7 +75,8 @@ message GetGuildProgressResponse {
 
 message GuildProgress {
   string guild_id = 1;
-  map<string, int32> objectives = 2;
+  string namespace = 2;
+  map<string, int32> objectives = 3;
 }
 
 // OpenAPI options for the entire API.
@@ -71,7 +90,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 
   security_definitions: {
     security: {
-      key: "bearer";
+      key: "Bearer";
       value: {
         type: TYPE_API_KEY;
         in: IN_HEADER;

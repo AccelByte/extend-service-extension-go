@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"testing"
 
+	"google.golang.org/grpc"
+
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,6 +27,16 @@ func (a *authValidatorMock) Validate(token string, permission *validator.Permiss
 	args := a.Called(token, permission, namespace, userId)
 
 	return args.Error(0)
+}
+
+type permissionExtractorMock struct {
+	mock.Mock
+}
+
+func (p *permissionExtractorMock) ExtractPermission(info *grpc.UnaryServerInfo) (permission *validator.Permission, err error) {
+	args := p.Called(info)
+
+	return args.Get(0).(*validator.Permission), args.Error(1)
 }
 
 func TestUnaryAuthServerIntercept(t *testing.T) {
@@ -53,8 +65,15 @@ func TestUnaryAuthServerIntercept(t *testing.T) {
 		return req, nil
 	}
 
+	info := &grpc.UnaryServerInfo{
+		FullMethod: "/abc.def.MyService/MyMethod",
+	}
+	extractor := &permissionExtractorMock{}
+	extractor.On("ExtractPermission", info).Return(&perm, nil)
+
 	// test
-	res, err := UnaryAuthServerIntercept(ctx, req, nil, handler)
+	interceptor := NewUnaryAuthServerIntercept(extractor)
+	res, err := interceptor(ctx, req, info, handler)
 	assert.NoError(t, err)
 	assert.Equal(t, req, res)
 }

@@ -6,8 +6,9 @@ package storage
 
 import (
 	"encoding/json"
-	"extend-custom-guild-service/pkg/common"
 	pb "extend-custom-guild-service/pkg/pb"
+
+	"github.com/AccelByte/accelbyte-go-sdk/cloudsave-sdk/pkg/cloudsaveclientmodels"
 
 	"github.com/AccelByte/accelbyte-go-sdk/cloudsave-sdk/pkg/cloudsaveclient/admin_game_record"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/cloudsave"
@@ -16,8 +17,8 @@ import (
 )
 
 type Storage interface {
-	GetGuildProgress(key string) (*pb.GuildProgress, error)
-	SaveGuildProgress(key string, value *pb.GuildProgress) error
+	GetGuildProgress(namespace string, key string) (*pb.GuildProgress, error)
+	SaveGuildProgress(namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error)
 }
 
 type CloudsaveStorage struct {
@@ -30,30 +31,44 @@ func NewCloudSaveStorage(csStorage *cloudsave.AdminGameRecordService) *Cloudsave
 	}
 }
 
-func (c *CloudsaveStorage) SaveGuildProgress(key string, value *pb.GuildProgress) error {
+func (c *CloudsaveStorage) SaveGuildProgress(namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error) {
 	input := &admin_game_record.AdminPostGameRecordHandlerV1Params{
 		Body:      value,
 		Key:       key,
-		Namespace: common.GetNamespace(),
+		Namespace: namespace,
 	}
-	_, err := c.csStorage.AdminPostGameRecordHandlerV1Short(input)
+	response, err := c.csStorage.AdminPostGameRecordHandlerV1Short(input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	guildProgress, err := parseResponseToGuildProgress(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return guildProgress, nil
 }
 
-func (c *CloudsaveStorage) GetGuildProgress(key string) (*pb.GuildProgress, error) {
+func (c *CloudsaveStorage) GetGuildProgress(namespace string, key string) (*pb.GuildProgress, error) {
 	input := &admin_game_record.AdminGetGameRecordHandlerV1Params{
 		Key:       key,
-		Namespace: common.GetNamespace(),
+		Namespace: namespace,
 	}
 	response, err := c.csStorage.AdminGetGameRecordHandlerV1Short(input)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error getting guild progress: %v", err)
 	}
 
+	guildProgress, err := parseResponseToGuildProgress(response)
+	if err != nil {
+		return nil, err
+	}
+
+	return guildProgress, nil
+}
+
+func parseResponseToGuildProgress(response *cloudsaveclientmodels.ModelsGameRecordResponse) (*pb.GuildProgress, error) {
 	// Convert the response value to a JSON string
 	valueJSON, err := json.Marshal(response.Value)
 	if err != nil {

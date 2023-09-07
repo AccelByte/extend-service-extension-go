@@ -93,8 +93,6 @@ func main() {
 	var refreshRepo repository.RefreshTokenRepository = sdkAuth.DefaultRefreshTokenImpl()
 
 	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
-		// unaryServerInterceptors = append(unaryServerInterceptors, server.EnsureValidToken) // deprecated
-
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		authService := iam.OAuth20Service{
 			Client:           factory.NewIamClient(configRepo),
@@ -104,7 +102,10 @@ func main() {
 		common.Validator = validator.NewTokenValidator(authService, time.Duration(refreshInterval)*time.Second)
 		common.Validator.Initialize()
 
-		unaryServerInterceptors = append(unaryServerInterceptors, common.UnaryAuthServerIntercept)
+		permissionExtractor := common.NewProtoPermissionExtractor()
+		unaryServerInterceptor := common.NewUnaryAuthServerIntercept(permissionExtractor)
+
+		unaryServerInterceptors = append(unaryServerInterceptors, unaryServerInterceptor)
 		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)
 		logrus.Infof("added auth interceptors")
 	}
@@ -135,10 +136,10 @@ func main() {
 		RefreshTokenRepository: refreshRepo,
 	}
 
-	storage := storage.NewCloudSaveStorage(&adminGameRecordService)
+	cloudSaveStorage := storage.NewCloudSaveStorage(&adminGameRecordService)
 
 	// Register Guild Service
-	guildServiceServer := service.NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, storage)
+	guildServiceServer := service.NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, cloudSaveStorage)
 	pb.RegisterGuildServiceServer(s, guildServiceServer)
 
 	// Enable gRPC Reflection
