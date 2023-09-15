@@ -13,10 +13,17 @@ To get started, make sure you have the following software installed on your syst
 3. [Docker Compose](https://docs.docker.com/compose/install/): Docker Compose is a tool for defining and running multi-container Docker applications.
 4. [Make](https://www.gnu.org/software/make/): Make is a build automation tool.
 
-### 4.2. Cloning and Running the dependency repo
+### 4.2. Cloning and Running the dependency repo (Optional)
 
 This repository contains all dependencies that needed to be run for our service. 
-So, ensure these dependencies is up and running before you run the guild service
+
+So, by having these dependencies is up and running before you run the guild service you will be able to have your own observability stack in your local environment.
+
+In our local observability stack we're using Grafana that will provide:
+
+- Log
+- Traces
+- Metric
 
 ```bash
 $ git clone https://github.com/AccelByte/grpc-plugin-dependencies.git

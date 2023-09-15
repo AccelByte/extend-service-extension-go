@@ -9,6 +9,7 @@
       "name": "GuildService"
     }
   ],
+  "basePath": "/guild",
   "schemes": [
     "http",
     "https"
@@ -20,7 +21,7 @@
     "application/json"
   ],
   "paths": {
-    "/guild/v1/public/namespace/{namespace}/progress": {
+    "/v1/admin/namespace/{namespace}/progress": {
       "post": {
         "summary": "Update Guild progression",
         "description": "Update Guild progression if not existed yet will create a new one",
@@ -70,7 +71,7 @@
         ]
       }
     },
-    "/guild/v1/public/namespace/{namespace}/progress/{guildId}": {
+    "/v1/admin/namespace/{namespace}/progress/{guildId}": {
       "get": {
         "summary": "Get guild progression",
         "description": "Get guild progression",

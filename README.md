@@ -1,8 +1,8 @@
-# Guild Service - A Step-by-step Guided Tutorial
+# Extend Service Extension sample app golang
 
-This guided tutorial aims to provide a comprehensive understanding of 
-how to create a Guild Service for game development using gRPC, RESTful gateway, 
-and CloudSave service of AccelByte.
+This repository contains a custom service that will be used as a sample for testing Extend Service Extension.
+
+To make the guide more realistic it will be written by taking the game studios perspective when needing to implement their specific feature to cater their requirement. 
 
 ## Table of Contents
 

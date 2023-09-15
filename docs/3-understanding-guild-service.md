@@ -22,7 +22,7 @@ The Guild Service we're going to build will include the following key features:
 Our Guild Service will be designed as a microservice and will include:
 
 - A gRPC server to handle client requests
-- A RESTful gateway to expose the service to HTTP clients
+- A gRPC-Gateway as a RESTful gateway to expose the underlying gRPC server.
 - AccelByte CloudSave service integration for data persistence
 
 Now that we've laid the groundwork for our Guild Service, the next chapter will guide you 

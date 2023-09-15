@@ -268,7 +268,7 @@ func loggingMiddleware(logger *logrus.Logger, next http.Handler) http.Handler {
 func serveSwaggerUI(mux *http.ServeMux) {
 	swaggerUIDir := "third_party/swagger-ui"
 	fileServer := http.FileServer(http.Dir(swaggerUIDir))
-	swaggerUiPath := fmt.Sprintf("/%s/apidocs/", common.GetEnv("BASE_PATH", "guild"))
+	swaggerUiPath := fmt.Sprintf("%s/apidocs/", common.BasePath)
 	mux.Handle(swaggerUiPath, http.StripPrefix(swaggerUiPath, fileServer))
 }
 
@@ -284,6 +284,6 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 		firstMatchingFile := matchingFiles[0]
 		http.ServeFile(w, r, firstMatchingFile)
 	})
-	apidocsPath := fmt.Sprintf("/%s/apidocs/api.json", common.GetEnv("BASE_PATH", "guild"))
+	apidocsPath := fmt.Sprintf("%s/apidocs/api.json", common.BasePath)
 	mux.Handle(apidocsPath, fileHandler)
 }

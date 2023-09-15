@@ -4,38 +4,54 @@ In this chapter, we will be adding new endpoints to our service. This involves t
 
 1. Defining the service and its methods in our `.proto` file.
 2. Generating Go code from the updated `.proto` file.
-3. Implementing the new service methods in our server.
 
-## 6.1 Defining the Service in the .proto File
+## 6.1 Defining the Service in the `.proto` File
 
 gRPC services and messages are defined in `.proto` files. Our `.proto` file is located in `pkg/proto/guildService.proto`. Let's add new service methods to our `GuildService`:
 
 ```protobuf
 service GuildService {
+
   rpc CreateOrUpdateGuildProgress (CreateOrUpdateGuildProgressRequest) returns (CreateOrUpdateGuildProgressResponse) {
+    option (permission.action) = CREATE;
+    option (permission.resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      post: "/guild/v1/progress"
+      post: "/v1/admin/namespace/{namespace}/progress"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Update Guild progression"
       description: "Update Guild progression if not existed yet will create a new one"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      }
     };
   }
 
   rpc GetGuildProgress (GetGuildProgressRequest) returns (GetGuildProgressResponse) {
+    option (permission.action) = READ;
+    option (permission.resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      get: "/guild/v1/progress/{guild_id}"
+      get: "/v1/admin/namespace/{namespace}/progress/{guild_id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get guild progression"
       description: "Get guild progression"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      }
     };
   }
 }
 
 message CreateOrUpdateGuildProgressRequest {
-  string guild_id = 1;
+  string namespace = 1;
   GuildProgress guild_progress = 2;
 }
 
@@ -44,25 +60,43 @@ message CreateOrUpdateGuildProgressResponse {
 }
 
 message GetGuildProgressRequest {
-  string guild_id = 1;
+  string namespace = 1;
+  string guild_id = 2;
 }
 
 message GetGuildProgressResponse {
   GuildProgress guild_progress = 1;
 }
 
-message GuildProgress {
-  string guild_id = 1;
-  map<string, int32> objectives = 2;
-}
+// OpenAPI options for the entire API.
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Guild Service API";
+    version: "1.0";
+  };
+  schemes: HTTP;
+  schemes: HTTPS;
+  base_path: "/guild";
+
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+      }
+    }
+  };
+};
 ```
 
 In this case, we've added two service methods: `CreateOrUpdateGuildProgress` and `GetGuildProgress`.
 
-In the CreateOrUpdateGuildProgress method, we use the `option (google.api.http)` annotation 
+In the `CreateOrUpdateGuildProgress` method, we use the `option (google.api.http)` annotation 
 to specify the HTTP method and path for this service method. 
-The post: `"/guild/v1/progress"` means that this service method will be exposed as a 
-POST HTTP method at the path `"/guild/v1/progress"`.
+The post: `"/v1/admin/namespace/{namespace}/progress"` means that this service method will be exposed as a 
+POST HTTP method at the path `"/v1/admin/namespace/{namespace}/progress"`.
 
 We use body: `"*"` to indicate that the entire request message will be used as the 
 HTTP request body. Alternatively, you could specify a particular field of the 
@@ -77,6 +111,16 @@ the path includes a variable part `{guild_id}` which will be substituted with th
 
 After defining the service and methods in the `.proto` file, we run the protoc compiler 
 to generate the corresponding Go code.
+
+Tricky Part: `base_path`
+
+If `base_path` is set, note that it doesn't alter the paths generated in the Swagger file. Your actual API paths in `google.api.http` remain unchanged. If you're using `base_path`, you'll need to manually adjust the `BasePath` in the `common/config.go`. We will explain more about this in the following chapter.
+
+Permission control via `permission.proto`
+  Annotations for fine-grained access control:
+
+- `permission.action`: it can be either READ, CREATE, UPDATE, DELETE
+- `permission.resource`: Defines scope-based access control (e.g., ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD).
 
 ## 6.2 Generating Go Code
 

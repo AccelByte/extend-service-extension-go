@@ -12,18 +12,23 @@ BUILDER := grpc-plugin-server-builder
 proto:
 	rm -rfv pkg/pb/*
 	mkdir -p pkg/pb
+	# generate the protobuf
 	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
 			--proto_path=pkg/proto \
 			--go_out=pkg/pb \
 			--go_opt=paths=source_relative \
 			--go-grpc_out=pkg/pb \
 			--go-grpc_opt=paths=source_relative \
+			pkg/proto/*.proto
+	# generate the swagger.json
+	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
+			--proto_path=pkg/proto \
 			--grpc-gateway_out=pkg/pb \
 			--grpc-gateway_opt=logtostderr=true \
 			--grpc-gateway_opt=paths=source_relative \
 			--openapiv2_out=apidocs \
 			--openapiv2_opt=logtostderr=true \
-			pkg/proto/*.proto
+			pkg/proto/guildService.proto
 
 lint: proto
 	rm -f lint.err
@@ -41,13 +46,13 @@ build: proto
 image:
 	docker buildx build -t ${IMAGE_NAME} --load .
 
-imagex:
+imagex: build
 	docker buildx inspect $(BUILDER) || docker buildx create --name $(BUILDER) --use
 	docker buildx build -t ${IMAGE_NAME} --platform linux/arm64/v8,linux/amd64 .
 	docker buildx build -t ${IMAGE_NAME} --load .
 	docker buildx rm --keep-state $(BUILDER)
 
-imagex_push:
+imagex_push: build
 	@test -n "$(IMAGE_TAG)" || (echo "IMAGE_TAG is not set (e.g. 'v0.1.0', 'latest')"; exit 1)
 	@test -n "$(REPO_URL)" || (echo "REPO_URL is not set"; exit 1)
 	docker buildx inspect $(BUILDER) || docker buildx create --name $(BUILDER) --use

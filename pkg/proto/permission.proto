@@ -1,5 +1,5 @@
 syntax = "proto3";
-package accelbyte.custom.guild;
+package permission;
 
 import "google/protobuf/descriptor.proto";
 

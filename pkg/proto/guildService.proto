@@ -18,10 +18,10 @@ import "permission.proto";
 service GuildService {
 
   rpc CreateOrUpdateGuildProgress (CreateOrUpdateGuildProgressRequest) returns (CreateOrUpdateGuildProgressResponse) {
-    option (action) = CREATE;
-    option (resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
+    option (permission.action) = CREATE;
+    option (permission.resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      post: "/guild/v1/public/namespace/{namespace}/progress"
+      post: "/v1/admin/namespace/{namespace}/progress"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -37,10 +37,10 @@ service GuildService {
   }
 
   rpc GetGuildProgress (GetGuildProgressRequest) returns (GetGuildProgressResponse) {
-    option (action) = READ;
-    option (resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
+    option (permission.action) = READ;
+    option (permission.resource) = "ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD";
     option (google.api.http) = {
-      get: "/guild/v1/public/namespace/{namespace}/progress/{guild_id}"
+      get: "/v1/admin/namespace/{namespace}/progress/{guild_id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get guild progression"
@@ -87,6 +87,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   };
   schemes: HTTP;
   schemes: HTTPS;
+  base_path: "/guild";
 
   security_definitions: {
     security: {

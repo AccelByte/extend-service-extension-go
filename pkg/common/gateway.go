@@ -34,5 +34,7 @@ func NewGateway(ctx context.Context, grpcServerEndpoint string) (*Gateway, error
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	g.mux.ServeHTTP(w, r)
+	// Strip the base path, since the base_path configuration in protofile won't actually do the routing
+	// Reference: https://github.com/grpc-ecosystem/grpc-gateway/pull/919/commits/1c34df861cfc0d6cb19ea617921d7d9eaa209977
+	http.StripPrefix(BasePath, g.mux).ServeHTTP(w, r)
 }

@@ -57,37 +57,30 @@ you would save the updated progress to CloudSave like so:
 
 
 ```go
-func (s *GuildServiceServerImpl) CreateOrUpdateGuildProgress(
-    ctx context.Context, req *pb.CreateOrUpdateGuildProgressRequest,
-) (*pb.CreateOrUpdateGuildProgressResponse, error) {
-    // Other implementation, like your computation, validation, etc...
-	
-    // Initialize the AccelByte CloudSave service
-    adminGameRecordService := &cloudsave.AdminGameRecordService{
-        Client:                 factory.NewCloudsaveClient(g.configRepo), 
-        TokenRepository:        g.tokenRepo,
-        RefreshTokenRepository: g.refreshRepo,
-    }
+// Initialize the AccelByte CloudSave service
+adminGameRecordService := &cloudsave.AdminGameRecordService{
+    Client:                 factory.NewCloudsaveClient(g.configRepo), 
+    TokenRepository:        g.tokenRepo,
+    RefreshTokenRepository: g.refreshRepo,
+}
 
-    // Create or update guild progress in CloudSave
-    // This assumes we're storing guild progress as a JSON object
-    guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildId)
-    guildProgressValue := req.GuildProgress
+// Create or update guild progress in CloudSave
+// This assumes we're storing guild progress as a JSON object
+guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildId)
+guildProgressValue := req.GuildProgress
 
-    input := &admin_game_record.AdminPostGameRecordHandlerV1Params{
-        Body:      guildProgressValue,
-        Key:       guildProgressKey,
-        Namespace: getNamespace(),
-    }
-    _, err := adminGameRecordService.AdminPostGameRecordHandlerV1Short(input)
-    if err != nil {
-        return nil, status.Errorf(codes.Internal, "Error updating guild progress: %v", err)
-    }
-
-    // Return the updated guild progress
-    return &pb.CreateOrUpdateGuildProgressResponse{GuildProgress: req.GuildProgress}, nil
+input := &admin_game_record.AdminPostGameRecordHandlerV1Params{
+    Body:      guildProgressValue,
+    Key:       guildProgressKey,
+    Namespace: getNamespace(),
+}
+_, err := adminGameRecordService.AdminPostGameRecordHandlerV1Short(input)
+if err != nil {
+    return nil, status.Errorf(codes.Internal, "Error updating guild progress: %v", err)
 }
 ```
+
+For more accurate details how it was implemented please refer to `pkg/storage/storage.go`
 
 That's it! You've now integrated AccelByte's CloudSave into your GuildService. 
 You can now use CloudSave to save and retrieve guild progress, along with any other 

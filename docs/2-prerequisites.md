@@ -16,8 +16,6 @@ You'll need the following tools installed on your system:
 
 - Go (version 1.20 or later)
 - Docker and Docker-compose
-- Protocol Buffer Compiler
-- gRPC-Gateway Plugin for the Protocol Buffer Compiler
 - Make
 
 The exact installation and setup process will be covered in Chapter 4 of this tutorial.
