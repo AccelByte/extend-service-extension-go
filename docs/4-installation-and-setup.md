@@ -26,12 +26,16 @@ In our local observability stack we're using Grafana that will provide:
 - Metric
 
 ```bash
-$ git clone https://github.com/AccelByte/grpc-plugin-dependencies.git
+git clone https://github.com/AccelByte/grpc-plugin-dependencies.git
 ```
 
 ```bash
-$ cd grpc-plugin-dependencies
+cd grpc-plugin-dependencies
+```
 
-$ docker-compose up
+and then do this
+
+```bash
+docker-compose up
 
 ```

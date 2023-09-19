@@ -90,9 +90,9 @@ func main() {
 	// Preparing the IAM authorization
 	var tokenRepo repository.TokenRepository = sdkAuth.DefaultTokenRepositoryImpl()
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
-	var refreshRepo repository.RefreshTokenRepository = sdkAuth.DefaultRefreshTokenImpl()
+	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{RefreshRate: 1.0, AutoRefresh: true}
 
-	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "false")) == "true" {
+	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
 		authService := iam.OAuth20Service{
 			Client:           factory.NewIamClient(configRepo),
@@ -121,6 +121,7 @@ func main() {
 		Client:                 factory.NewIamClient(configRepo),
 		TokenRepository:        tokenRepo,
 		RefreshTokenRepository: refreshRepo,
+		ConfigRepository:       configRepo,
 	}
 	clientId := configRepo.GetClientId()
 	clientSecret := configRepo.GetClientSecret()

@@ -14,8 +14,6 @@ we have chosen the Guild Service as the specific use case. This is because guild
 The Guild Service we're going to build will include the following key features:
 
 - Guild achievements and progress tracking
-- Guild member's management, e.g. inviting, or banning player (TODO)
-- Guild member roles and permissions (TODO)
 
 ## 3.3. Guild Service Architecture
 

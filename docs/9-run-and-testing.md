@@ -18,31 +18,27 @@ To be able to run this sample app, you will need to follow these setup steps.
    AB_CLIENT_ID='xxxxxxxxxx'                  # Use Client ID from the Setup section
    AB_CLIENT_SECRET='xxxxxxxxxx'              # Use Client Secret from the Setup section
    AB_NAMESPACE='xxxxxxxxxx'                  # Use Namespace ID from the Setup section
-   PLUGIN_GRPC_SERVER_AUTH_ENABLED=false      # Enable or disable access token and permission verification
+   PLUGIN_GRPC_SERVER_AUTH_ENABLED=true       # Enable or disable access token and permission verification
    ```
 
-   > :warning: **Keep PLUGIN_GRPC_SERVER_AUTH_ENABLED=false for now**: It is currently not
-   supported by AccelByte Gaming Services but it will be enabled later on to improve security. If it is
-   enabled, the gRPC server will reject any calls from gRPC clients without proper authorization
-   metadata.
-
-- Ensure `grpc-gateway-dependencies` mentioned in [chapter 4](4-installation-and-setup.md) is up and running
+  > :info: **PLUGIN_GRPC_SERVER_AUTH_ENABLED**: If 'disable' will bypass the validation being set on the endpoint `permission.action` and `permission.resource` [creating-new-endpoint](6-creating-new-endpoint.md#6-creating-a-new-endpoint)
 
 - Ensure you have configured all required permission for your clientId, in this custom service we're using:
 
   - ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD [CREATE,READ,UPDATE,DELETE]
 
+- (Optional) `grpc-gateway-dependencies` mentioned in [chapter 4](4-installation-and-setup.md) is up and running if you needed the observability stack
 
 ## Change API base path
 
 To change the base path you need to change the base path 2 places
 
-- in `common/config.go`, to be accurately this part
+- in `pkg/common/config.go`, to be accurately this part
 ```go
 BasePath    = "/guild"
 ```
 
-- in `proto/guildService.proto`
+- in `pkg/proto/guildService.proto`
 ```protobuf
 // OpenAPI options for the entire API.
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
@@ -96,7 +92,7 @@ We will use curl command to test our service. For example, to test `CreateOrUpda
 Be sure to use replace the `accessToken`, `namespace`. Since the endpoint require admin permission `ADMIN:NAMESPACE:{namespace}:CLOUDSAVE:RECORD`, ensure your accessToken has the admin permission.
 
 ```bash
-$ curl -X 'POST' \
+curl -X 'POST' \
   'http://localhost:8000/guild/v1/admin/namespace/<your-namespace>/progress' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer <accessToken>' \
@@ -115,7 +111,7 @@ $ curl -X 'POST' \
 And to test `GetGuildProgress` endpoint:
 
 ```bash
-$ curl -X 'GET' \
+curl -X 'GET' \
   'http://localhost:8000/guild/v1/admin/namespace/<your-namespace>/progress/123456789' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer <accessToken>'
