@@ -132,9 +132,8 @@ func main() {
 
 	// Initialize the AccelByte CloudSave service
 	adminGameRecordService := cloudsave.AdminGameRecordService{
-		Client:                 factory.NewCloudsaveClient(configRepo),
-		TokenRepository:        tokenRepo,
-		RefreshTokenRepository: refreshRepo,
+		Client:          factory.NewCloudsaveClient(configRepo),
+		TokenRepository: tokenRepo,
 	}
 
 	cloudSaveStorage := storage.NewCloudSaveStorage(&adminGameRecordService)
