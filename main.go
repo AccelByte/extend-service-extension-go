@@ -26,7 +26,6 @@ import (
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/factory"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
-	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -92,21 +91,24 @@ func main() {
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
 	var refreshRepo repository.RefreshTokenRepository = &sdkAuth.RefreshTokenImpl{RefreshRate: 1.0, AutoRefresh: true}
 
+	oauthService := iam.OAuth20Service{
+		Client:                 factory.NewIamClient(configRepo),
+		TokenRepository:        tokenRepo,
+		RefreshTokenRepository: refreshRepo,
+		ConfigRepository:       configRepo,
+	}
+
 	if strings.ToLower(common.GetEnv("PLUGIN_GRPC_SERVER_AUTH_ENABLED", "true")) == "true" {
 		refreshInterval := common.GetEnvInt("REFRESH_INTERVAL", 600)
-		authService := iam.OAuth20Service{
-			Client:           factory.NewIamClient(configRepo),
-			ConfigRepository: configRepo,
-			TokenRepository:  tokenRepo,
-		}
-		common.Validator = validator.NewTokenValidator(authService, time.Duration(refreshInterval)*time.Second)
+		common.Validator = common.NewTokenValidator(oauthService, time.Duration(refreshInterval)*time.Second, true)
 		common.Validator.Initialize()
 
 		permissionExtractor := common.NewProtoPermissionExtractor()
 		unaryServerInterceptor := common.NewUnaryAuthServerIntercept(permissionExtractor)
+		serverServerInterceptor := common.NewStreamAuthServerIntercept(permissionExtractor)
 
 		unaryServerInterceptors = append(unaryServerInterceptors, unaryServerInterceptor)
-		streamServerInterceptors = append(streamServerInterceptors, common.StreamAuthServerIntercept)
+		streamServerInterceptors = append(streamServerInterceptors, serverServerInterceptor)
 		logrus.Infof("added auth interceptors")
 	}
 
@@ -117,12 +119,6 @@ func main() {
 	)
 
 	// Configure IAM authorization
-	oauthService := iam.OAuth20Service{
-		Client:                 factory.NewIamClient(configRepo),
-		TokenRepository:        tokenRepo,
-		RefreshTokenRepository: refreshRepo,
-		ConfigRepository:       configRepo,
-	}
 	clientId := configRepo.GetClientId()
 	clientSecret := configRepo.GetClientSecret()
 	err := oauthService.LoginClient(&clientId, &clientSecret)

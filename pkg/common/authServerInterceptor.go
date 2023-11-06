@@ -6,19 +6,24 @@ package common
 
 import (
 	"context"
+	"crypto/rsa"
+	"encoding/base64"
 	pb "extend-custom-guild-service/pkg/pb"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
+	"github.com/AccelByte/accelbyte-go-sdk/iam-sdk/pkg/iamclientmodels"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 var (
@@ -26,7 +31,7 @@ var (
 )
 
 type ProtoPermissionExtractor interface {
-	ExtractPermission(*grpc.UnaryServerInfo) (permission *validator.Permission, err error)
+	ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *validator.Permission, err error)
 }
 
 func NewProtoPermissionExtractor() *ProtoPermissionExtractorImpl {
@@ -35,8 +40,22 @@ func NewProtoPermissionExtractor() *ProtoPermissionExtractorImpl {
 
 type ProtoPermissionExtractorImpl struct{}
 
-func (p *ProtoPermissionExtractorImpl) ExtractPermission(info *grpc.UnaryServerInfo) (*validator.Permission, error) {
-	serviceName, methodName, err := parseFullMethod(info.FullMethod)
+func (p *ProtoPermissionExtractorImpl) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (*validator.Permission, error) {
+	if infoUnary != nil && infoStream != nil {
+		return nil, errors.New("both infoUnary and infoStream cannot be filled at the same time")
+	}
+
+	var serviceName string
+	var methodName string
+	var err error
+
+	if infoUnary != nil {
+		serviceName, methodName, err = parseFullMethod(infoUnary.FullMethod)
+	} else if infoStream != nil {
+		serviceName, methodName, err = parseFullMethod(infoStream.FullMethod)
+	} else {
+		return nil, errors.New("both infoUnary and infoStream are nil")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +93,7 @@ func NewUnaryAuthServerIntercept(
 		token := strings.TrimPrefix(authorization, "Bearer ")
 
 		// Extract permission stated in the proto file
-		permission, err := permissionExtractor.ExtractPermission(info)
+		permission, err := permissionExtractor.ExtractPermission(info, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -113,41 +132,40 @@ func parseFullMethod(fullMethod string) (string, string, error) {
 	return serviceName, methodName, nil
 }
 
-func StreamAuthServerIntercept(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	if Validator == nil {
-		return errors.New("server token validator not set")
+func NewStreamAuthServerIntercept(
+	permissionExtractor ProtoPermissionExtractor,
+) func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if Validator == nil {
+			return errors.New("server token validator not set")
+		}
+
+		meta, found := metadata.FromIncomingContext(ss.Context())
+		if !found {
+			return errors.New("metadata missing")
+		}
+
+		authorization := meta["authorization"][0]
+		token := strings.TrimPrefix(authorization, "Bearer ")
+
+		// Extract permission stated in the proto file
+		permission, err := permissionExtractor.ExtractPermission(nil, info)
+		if err != nil {
+			return err
+		}
+		namespace := getNamespace()
+
+		err = Validator.Validate(token, permission, &namespace, nil)
+		if err != nil {
+			return err
+		}
+
+		return handler(srv, ss)
 	}
-
-	meta, found := metadata.FromIncomingContext(ss.Context())
-	if !found {
-		return errors.New("metadata missing")
-	}
-
-	authorization := meta["authorization"][0]
-	token := strings.TrimPrefix(authorization, "Bearer ")
-
-	namespace := getNamespace()
-	permission := getRequiredPermission()
-	var userId *string
-
-	err := Validator.Validate(token, &permission, &namespace, userId)
-	if err != nil {
-		return err
-	}
-
-	return handler(srv, ss)
-}
-
-func getAction() int {
-	return GetEnvInt("AB_ACTION", 2)
 }
 
 func getNamespace() string {
 	return GetEnv("AB_NAMESPACE", "accelbyte")
-}
-
-func getResourceName() string {
-	return GetEnv("AB_RESOURCE_NAME", "CLOUDSAVE")
 }
 
 func wrapPermission(resource string, action int) validator.Permission {
@@ -157,9 +175,18 @@ func wrapPermission(resource string, action int) validator.Permission {
 	}
 }
 
-func getRequiredPermission() validator.Permission {
-	return validator.Permission{
-		Action:   getAction(),
-		Resource: fmt.Sprintf("NAMESPACE:%s:%s", getNamespace(), getResourceName()),
+func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Duration, validateLocally bool) validator.AuthTokenValidator {
+	return &validator.TokenValidator{
+		AuthService:     authService,
+		RefreshInterval: refreshInterval,
+
+		Filter:                nil,
+		JwkSet:                nil,
+		JwtClaims:             validator.JWTClaims{},
+		JwtEncoding:           *base64.URLEncoding.WithPadding(base64.NoPadding),
+		PublicKeys:            make(map[string]*rsa.PublicKey),
+		LocalValidationActive: validateLocally,
+		RevokedUsers:          make(map[string]time.Time),
+		Roles:                 make(map[string]*iamclientmodels.ModelRoleResponseV3),
 	}
 }

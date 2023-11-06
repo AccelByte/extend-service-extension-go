@@ -33,8 +33,8 @@ type permissionExtractorMock struct {
 	mock.Mock
 }
 
-func (p *permissionExtractorMock) ExtractPermission(info *grpc.UnaryServerInfo) (permission *validator.Permission, err error) {
-	args := p.Called(info)
+func (p *permissionExtractorMock) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *validator.Permission, err error) {
+	args := p.Called(infoUnary)
 
 	return args.Get(0).(*validator.Permission), args.Error(1)
 }
