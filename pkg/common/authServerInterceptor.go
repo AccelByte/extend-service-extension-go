@@ -136,6 +136,10 @@ func NewStreamAuthServerIntercept(
 	permissionExtractor ProtoPermissionExtractor,
 ) func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if strings.Contains(info.FullMethod, "grpc.reflection") {
+			return handler(srv, ss)
+		}
+
 		if Validator == nil {
 			return errors.New("server token validator not set")
 		}
