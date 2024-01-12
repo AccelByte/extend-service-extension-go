@@ -65,3 +65,13 @@ test: proto
 		-e GOCACHE=/data/.cache/go-build \
 		$(GOLANG_DOCKER_IMAGE) sh -c "go test -v ./..."
 
+test_functional_local_hosted: proto
+	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
+	docker build --tag service-extension-test-functional -f test/functional/Dockerfile test/functional && \
+	docker run --rm -t \
+		--env-file $(ENV_PATH) \
+		-e GOCACHE=/data/.cache/go-build \
+		-e GOPATH=/data/.cache/mod \
+		-u $$(id -u):$$(id -g) \
+		-v $$(pwd):/data \
+		-w /data service-extension-test-functional bash ./test/functional/test-local-hosted.sh
