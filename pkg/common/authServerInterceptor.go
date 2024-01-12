@@ -89,6 +89,11 @@ func NewUnaryAuthServerIntercept(
 			return nil, errors.New("metadata missing")
 		}
 
+		_, found = meta["authorization"]
+		if !found {
+			return nil, errors.New("authorization missing")
+		}
+
 		authorization := meta["authorization"][0]
 		token := strings.TrimPrefix(authorization, "Bearer ")
 
@@ -147,6 +152,11 @@ func NewStreamAuthServerIntercept(
 		meta, found := metadata.FromIncomingContext(ss.Context())
 		if !found {
 			return errors.New("metadata missing")
+		}
+
+		_, found = meta["authorization"]
+		if !found {
+			return errors.New("authorization missing")
 		}
 
 		authorization := meta["authorization"][0]
