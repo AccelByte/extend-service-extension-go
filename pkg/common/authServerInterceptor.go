@@ -8,14 +8,17 @@ import (
 	"context"
 	"crypto/rsa"
 	"encoding/base64"
-	pb "extend-custom-guild-service/pkg/pb"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
+	pb "extend-custom-guild-service/pkg/pb"
+
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -80,33 +83,17 @@ func NewUnaryAuthServerIntercept(
 ) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { // nolint
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if Validator == nil {
-			return nil, errors.New("server token validator not set")
-		}
+		if !skipCheckAuthorizationMetadata(info.FullMethod) {
+			// Extract permission stated in the proto file
+			permission, err := permissionExtractor.ExtractPermission(info, nil)
+			if err != nil {
+				return nil, err
+			}
 
-		meta, found := metadata.FromIncomingContext(ctx)
-		if !found {
-			return nil, errors.New("metadata missing")
-		}
-
-		_, found = meta["authorization"]
-		if !found {
-			return nil, errors.New("authorization missing")
-		}
-
-		authorization := meta["authorization"][0]
-		token := strings.TrimPrefix(authorization, "Bearer ")
-
-		// Extract permission stated in the proto file
-		permission, err := permissionExtractor.ExtractPermission(info, nil)
-		if err != nil {
-			return nil, err
-		}
-		namespace := getNamespace()
-
-		err = Validator.Validate(token, permission, &namespace, nil)
-		if err != nil {
-			return nil, err
+			err = checkAuthorizationMetadata(ctx, permission)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return handler(ctx, req)
@@ -141,41 +128,65 @@ func NewStreamAuthServerIntercept(
 	permissionExtractor ProtoPermissionExtractor,
 ) func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if strings.Contains(info.FullMethod, "grpc.reflection") {
-			return handler(srv, ss)
-		}
+		if !skipCheckAuthorizationMetadata(info.FullMethod) {
+			// Extract permission stated in the proto file
+			permission, err := permissionExtractor.ExtractPermission(nil, info)
+			if err != nil {
+				return err
+			}
 
-		if Validator == nil {
-			return errors.New("server token validator not set")
-		}
-
-		meta, found := metadata.FromIncomingContext(ss.Context())
-		if !found {
-			return errors.New("metadata missing")
-		}
-
-		_, found = meta["authorization"]
-		if !found {
-			return errors.New("authorization missing")
-		}
-
-		authorization := meta["authorization"][0]
-		token := strings.TrimPrefix(authorization, "Bearer ")
-
-		// Extract permission stated in the proto file
-		permission, err := permissionExtractor.ExtractPermission(nil, info)
-		if err != nil {
-			return err
-		}
-		namespace := getNamespace()
-
-		err = Validator.Validate(token, permission, &namespace, nil)
-		if err != nil {
-			return err
+			err = checkAuthorizationMetadata(ss.Context(), permission)
+			if err != nil {
+				return err
+			}
 		}
 
 		return handler(srv, ss)
 	}
+}
+
+func skipCheckAuthorizationMetadata(fullMethod string) bool {
+	if strings.HasPrefix(fullMethod, "/grpc.reflection.v1alpha.ServerReflection/") {
+		return true
+	}
+
+	if strings.HasPrefix(fullMethod, "/grpc.health.v1.Health/") {
+		return true
+	}
+
+	return false
+}
+
+func checkAuthorizationMetadata(ctx context.Context, permission *validator.Permission) error {
+	if Validator == nil {
+		return status.Error(codes.Internal, "authorization token validator is not set")
+	}
+
+	meta, found := metadata.FromIncomingContext(ctx)
+
+	if !found {
+		return status.Error(codes.Unauthenticated, "metadata is missing")
+	}
+
+	if _, ok := meta["authorization"]; !ok {
+		return status.Error(codes.Unauthenticated, "authorization metadata is missing")
+	}
+
+	if len(meta["authorization"]) == 0 {
+		return status.Error(codes.Unauthenticated, "authorization metadata length is 0")
+	}
+
+	authorization := meta["authorization"][0]
+	token := strings.TrimPrefix(authorization, "Bearer ")
+	namespace := getNamespace()
+
+	err := Validator.Validate(token, permission, &namespace, nil)
+
+	if err != nil {
+		return status.Error(codes.PermissionDenied, err.Error())
+	}
+
+	return nil
 }
 
 func getNamespace() string {
