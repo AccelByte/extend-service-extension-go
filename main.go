@@ -5,7 +5,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"extend-custom-guild-service/pkg/service"
 	"extend-custom-guild-service/pkg/storage"
 	"fmt"
@@ -17,6 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/go-openapi/loads"
 
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/cloudsave"
 
@@ -173,7 +177,7 @@ func main() {
 
 	go func() {
 		http.Handle(metricsEndpoint, promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{}))
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), nil))
+		logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), nil))
 	}()
 	logrus.Infof("serving prometheus metrics at: (:%d%s)", metricsPort, metricsEndpoint)
 
@@ -218,7 +222,7 @@ func main() {
 		}
 	}()
 	logrus.Infof("gRPC server started")
-	logrus.Infof("app server started")
+	logrus.Infof("app server started on base path: " + common.BasePath)
 
 	ctx, _ = signal.NotifyContext(ctx, os.Interrupt)
 	<-ctx.Done()
@@ -278,7 +282,36 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 		}
 
 		firstMatchingFile := matchingFiles[0]
-		http.ServeFile(w, r, firstMatchingFile)
+		swagger, err := loads.Spec(firstMatchingFile)
+		if err != nil {
+			http.Error(w, "Error parsing Swagger JSON file", http.StatusInternalServerError)
+
+			return
+		}
+
+		// Update the base path
+		swagger.Spec().BasePath = common.BasePath
+
+		updatedSwagger, err := swagger.Spec().MarshalJSON()
+		if err != nil {
+			http.Error(w, "Error serializing updated Swagger JSON", http.StatusInternalServerError)
+
+			return
+		}
+		var prettySwagger bytes.Buffer
+		err = json.Indent(&prettySwagger, updatedSwagger, "", "  ")
+		if err != nil {
+			http.Error(w, "Error formatting updated Swagger JSON", http.StatusInternalServerError)
+
+			return
+		}
+
+		_, err = w.Write(prettySwagger.Bytes())
+		if err != nil {
+			http.Error(w, "Error writing Swagger JSON response", http.StatusInternalServerError)
+
+			return
+		}
 	})
 	apidocsPath := fmt.Sprintf("%s/apidocs/api.json", common.BasePath)
 	mux.Handle(apidocsPath, fileHandler)

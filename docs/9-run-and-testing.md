@@ -19,6 +19,7 @@ To be able to run this sample app, you will need to follow these setup steps.
    AB_CLIENT_SECRET='xxxxxxxxxx'              # Use Client Secret from the Setup section
    AB_NAMESPACE='xxxxxxxxxx'                  # Use Namespace ID from the Setup section
    PLUGIN_GRPC_SERVER_AUTH_ENABLED=true       # Enable or disable access token and permission verification
+   BASE_PATH='/guild'                         # The base path used for the app
    ```
 
   > :info: **PLUGIN_GRPC_SERVER_AUTH_ENABLED**: If 'false' will bypass the validation being set on the endpoint `permission.action` and `permission.resource` [creating-new-endpoint](6-creating-new-endpoint.md#6-creating-a-new-endpoint)
@@ -32,27 +33,9 @@ To be able to run this sample app, you will need to follow these setup steps.
 
 - (Optional) `grpc-gateway-dependencies` mentioned in [chapter 4](4-installation-and-setup.md) is up and running if you needed the observability stack
 
-## Change API base path
+## Change API base path (Optional)
 
-To change the base path you need to change the base path 2 places
-
-- in `pkg/common/config.go`, to be accurately this part
-```go
-BasePath    = "/guild"
-```
-
-- in `pkg/proto/guildService.proto`
-```protobuf
-// OpenAPI options for the entire API.
-option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
-  // ...
-  
-  base_path: "/guild";
-  
-  // ...
-};
-
-```
+To change the base path you just need to define it in the envar `BASE_PATH`
 
 ## Building
 
@@ -75,7 +58,7 @@ For more details about these commands, see [Makefile](Makefile).
 To run the existing docker image of this sample app which has been built before, use the following command.
 
 ```
-docker-compose up
+docker compose up
 ```
 
 OR
@@ -83,7 +66,7 @@ OR
 To build, create a docker image, and run this sample app in one go, use the following command.
 
 ```
-docker-compose up --build
+docker compose up --build
 ```
 
 ## Testing

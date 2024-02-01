@@ -76,7 +76,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   };
   schemes: HTTP;
   schemes: HTTPS;
-  base_path: "/guild";
 
   security_definitions: {
     security: {
@@ -111,10 +110,6 @@ the path includes a variable part `{guild_id}` which will be substituted with th
 
 After defining the service and methods in the `.proto` file, we run the protoc compiler 
 to generate the corresponding Go code.
-
-Tricky Part: `base_path`
-
-If `base_path` is set, note that it doesn't alter the paths generated in the Swagger file. Your actual API paths in `google.api.http` remain unchanged. If you're using `base_path`, you'll need to manually adjust the `BasePath` in the `common/config.go`. We will explain more about this in the following chapter.
 
 Permission control via `permission.proto`
   Annotations for fine-grained access control:

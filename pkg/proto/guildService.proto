@@ -87,7 +87,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   };
   schemes: HTTP;
   schemes: HTTPS;
-  base_path: "/guild";
 
   security_definitions: {
     security: {

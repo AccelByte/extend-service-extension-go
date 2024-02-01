@@ -7,6 +7,9 @@ package common
 import (
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 func GetEnv(key, fallback string) string {
@@ -25,4 +28,16 @@ func GetEnvInt(key string, fallback int) int {
 	}
 
 	return val
+}
+
+func getBasePath() string {
+	basePath := os.Getenv("BASE_PATH")
+	if basePath == "" {
+		logrus.Fatalf("BASE_PATH envar is not set or empty")
+	}
+	if !strings.HasPrefix(basePath, "/") {
+		logrus.Fatalf("BASE_PATH envar is invalid, no leading '/' found. Valid example: /basePath")
+	}
+
+	return basePath
 }

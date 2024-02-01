@@ -65,6 +65,7 @@ test: proto
 	docker run -t --rm -u $$(id -u):$$(id -g) \
 		-v $$(pwd):/data/ -w /data/ \
 		-e GOCACHE=/data/.cache/go-build \
+		-e BASE_PATH=/guild \
 		$(GOLANG_DOCKER_IMAGE) sh -c "go test -v ./..."
 
 test_functional_local_hosted: proto

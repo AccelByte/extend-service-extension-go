@@ -9,7 +9,6 @@
       "name": "GuildService"
     }
   ],
-  "basePath": "/guild",
   "schemes": [
     "http",
     "https"
