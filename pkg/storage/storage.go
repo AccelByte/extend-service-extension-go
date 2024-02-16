@@ -68,7 +68,7 @@ func (c *CloudsaveStorage) GetGuildProgress(namespace string, key string) (*pb.G
 	return guildProgress, nil
 }
 
-func parseResponseToGuildProgress(response *cloudsaveclientmodels.ModelsGameRecordResponse) (*pb.GuildProgress, error) {
+func parseResponseToGuildProgress(response *cloudsaveclientmodels.ModelsGameRecordAdminResponse) (*pb.GuildProgress, error) {
 	// Convert the response value to a JSON string
 	valueJSON, err := json.Marshal(response.Value)
 	if err != nil {

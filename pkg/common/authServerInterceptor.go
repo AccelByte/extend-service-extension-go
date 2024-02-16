@@ -34,7 +34,7 @@ var (
 )
 
 type ProtoPermissionExtractor interface {
-	ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *validator.Permission, err error)
+	ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *iam.Permission, err error)
 }
 
 func NewProtoPermissionExtractor() *ProtoPermissionExtractorImpl {
@@ -43,7 +43,7 @@ func NewProtoPermissionExtractor() *ProtoPermissionExtractorImpl {
 
 type ProtoPermissionExtractorImpl struct{}
 
-func (p *ProtoPermissionExtractorImpl) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (*validator.Permission, error) {
+func (p *ProtoPermissionExtractorImpl) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (*iam.Permission, error) {
 	if infoUnary != nil && infoStream != nil {
 		return nil, errors.New("both infoUnary and infoStream cannot be filled at the same time")
 	}
@@ -157,7 +157,7 @@ func skipCheckAuthorizationMetadata(fullMethod string) bool {
 	return false
 }
 
-func checkAuthorizationMetadata(ctx context.Context, permission *validator.Permission) error {
+func checkAuthorizationMetadata(ctx context.Context, permission *iam.Permission) error {
 	if Validator == nil {
 		return status.Error(codes.Internal, "authorization token validator is not set")
 	}
@@ -193,8 +193,8 @@ func getNamespace() string {
 	return GetEnv("AB_NAMESPACE", "accelbyte")
 }
 
-func wrapPermission(resource string, action int) validator.Permission {
-	return validator.Permission{
+func wrapPermission(resource string, action int) iam.Permission {
+	return iam.Permission{
 		Action:   action,
 		Resource: resource,
 	}
@@ -207,7 +207,7 @@ func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Dura
 
 		Filter:                nil,
 		JwkSet:                nil,
-		JwtClaims:             validator.JWTClaims{},
+		JwtClaims:             iam.JWTClaims{},
 		JwtEncoding:           *base64.URLEncoding.WithPadding(base64.NoPadding),
 		PublicKeys:            make(map[string]*rsa.PublicKey),
 		LocalValidationActive: validateLocally,

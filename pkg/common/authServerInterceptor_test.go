@@ -12,7 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/metadata"
@@ -23,7 +23,7 @@ type authValidatorMock struct {
 }
 
 func (a *authValidatorMock) Initialize() {}
-func (a *authValidatorMock) Validate(token string, permission *validator.Permission, namespace *string, userId *string) error {
+func (a *authValidatorMock) Validate(token string, permission *iam.Permission, namespace *string, userId *string) error {
 	args := a.Called(token, permission, namespace, userId)
 
 	return args.Error(0)
@@ -33,10 +33,10 @@ type permissionExtractorMock struct {
 	mock.Mock
 }
 
-func (p *permissionExtractorMock) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *validator.Permission, err error) {
+func (p *permissionExtractorMock) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *iam.Permission, err error) {
 	args := p.Called(infoUnary)
 
-	return args.Get(0).(*validator.Permission), args.Error(1)
+	return args.Get(0).(*iam.Permission), args.Error(1)
 }
 
 func TestUnaryAuthServerIntercept(t *testing.T) {
@@ -47,7 +47,7 @@ func TestUnaryAuthServerIntercept(t *testing.T) {
 	action := 2
 	namespace := "test-accelbyte"
 	resourceName := "test-CLOUDSAVE"
-	perm := validator.Permission{
+	perm := iam.Permission{
 		Action:   action,
 		Resource: fmt.Sprintf("NAMESPACE:%s:%s", namespace, resourceName),
 	}
