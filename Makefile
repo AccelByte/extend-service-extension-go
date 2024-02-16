@@ -9,11 +9,13 @@ GOLANG_DOCKER_IMAGE := golang:1.20
 IMAGE_NAME := $(shell basename "$$(pwd)")-app
 BUILDER := grpc-plugin-server-builder
 
+PROJECT_DIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 proto:
 	rm -rfv pkg/pb/*
 	mkdir -p pkg/pb
 	# generate the protobuf
-	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
+	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
 			--proto_path=pkg/proto \
 			--go_out=pkg/pb \
 			--go_opt=paths=source_relative \
@@ -21,7 +23,7 @@ proto:
 			--go-grpc_opt=paths=source_relative \
 			pkg/proto/*.proto
 	# generate the swagger.json
-	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
+	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
 			--proto_path=pkg/proto \
 			--grpc-gateway_out=pkg/pb \
 			--grpc-gateway_opt=logtostderr=true \
@@ -40,7 +42,7 @@ lint: proto
 	[ ! -f lint.err ] || (rm lint.err && exit 1)
 
 build: proto
-	docker run -t --rm -u $$(id -u):$$(id -g) -v $$(pwd):/data/ -w /data/ -e GOCACHE=/data/.cache/go-build $(GOLANG_DOCKER_IMAGE) \
+	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ -e GOCACHE=/data/.cache/go-build $(GOLANG_DOCKER_IMAGE) \
 		sh -c "go build"
 
 image:
@@ -75,3 +77,18 @@ test_functional_local_hosted: proto
 		-u $$(id -u):$$(id -g) \
 		-v $$(pwd):/data \
 		-w /data service-extension-test-functional bash ./test/functional/test-local-hosted.sh
+
+test_functional_accelbyte_hosted: proto
+	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
+	docker build --tag service-extension-test-functional -f test/functional/Dockerfile test/functional && \
+	docker run --rm -t \
+		--env-file $(ENV_PATH) \
+		-e PROJECT_DIR=$(PROJECT_DIR) \
+		-e GOCACHE=/data/.cache/go-build \
+		-e GOPATH=/data/.cache/mod \
+		-e DOCKER_CONFIG=/tmp/.docker \
+		-u $$(id -u):$$(id -g) \
+		--group-add $$(getent group docker | cut -d ':' -f 3) \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v $$(pwd):/data \
+		-w /data service-extension-test-functional bash ./test/functional/test-accelbyte-hosted.sh
