@@ -51,7 +51,7 @@ To build and create a docker image of this sample app, use the following command
 make image
 ```
 
-For more details about these commands, see [Makefile](Makefile).
+For more details about these commands, see [Makefile](../Makefile).
 
 ## Running
 
