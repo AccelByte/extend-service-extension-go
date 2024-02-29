@@ -18,11 +18,6 @@ trap clean_up EXIT
 
 echo '# Build and run Extend app locally'
 
-sed -i "s@base_path:[ ]*\"[^\"]\+\"@base_path: \"/${APP_BASE_PATH}\"@" \
-    pkg/proto/guildService.proto
-sed -i "s@BasePath[ ]*=[ ]*\"[^\"]\+\"@BasePath = \"/${APP_BASE_PATH}\"@" \
-    pkg/common/config.go
-
 go build -o service
 BASE_PATH=/$APP_BASE_PATH ./service & SERVICE_PID=$!
 
