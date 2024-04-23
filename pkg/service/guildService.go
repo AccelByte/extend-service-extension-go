@@ -16,7 +16,7 @@ import (
 )
 
 type GuildServiceServerImpl struct {
-	pb.UnimplementedGuildServiceServer
+	pb.UnimplementedServiceServer
 	tokenRepo   repository.TokenRepository
 	configRepo  repository.ConfigRepository
 	refreshRepo repository.RefreshTokenRepository

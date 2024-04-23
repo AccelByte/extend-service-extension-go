@@ -14,12 +14,12 @@ To set up our guild service, we'll first create an object that embeds the `Unimp
 
 ```go
 type GuildServiceServerImpl struct {
-    pb.UnimplementedGuildServiceServer
+    pb.UnimplementedServiceServer
     // Other fields
 }
 ```
 
-This structure implements the `pb.UnimplementedGuildServiceServer` interface, 
+This structure implements the `pb.UnimplementedServiceServer` interface, 
 and holds relevant fields which will be used for our CloudSave setup later.
 
 To implement the `CreateOrUpdateGuildProgress` function, your `GuildServiceServerImpl` would then 

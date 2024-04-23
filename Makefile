@@ -30,7 +30,7 @@ proto:
 			--grpc-gateway_opt=paths=source_relative \
 			--openapiv2_out=apidocs \
 			--openapiv2_opt=logtostderr=true \
-			pkg/proto/guildService.proto
+			pkg/proto/service.proto
 
 lint: proto
 	rm -f lint.err

@@ -140,7 +140,7 @@ func main() {
 
 	// Register Guild Service
 	guildServiceServer := service.NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, cloudSaveStorage)
-	pb.RegisterGuildServiceServer(s, guildServiceServer)
+	pb.RegisterServiceServer(s, guildServiceServer)
 
 	// Enable gRPC Reflection
 	reflection.Register(s)
