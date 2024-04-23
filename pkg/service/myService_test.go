@@ -19,7 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-//go:generate mockgen -destination ./mocks/server_mock.go -package mocks extend-custom-guild-service/pkg/pb GuildServiceServer
+//go:generate mockgen -destination ./mocks/server_mock.go -package mocks extend-custom-guild-service/pkg/pb myServiceServer
 //go:generate mockgen -destination ./mocks/repo_mock.go -package mocks github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/repository TokenRepository,ConfigRepository,RefreshTokenRepository
 
 type cloudsaveStorageMock struct {
@@ -38,7 +38,7 @@ func (c *cloudsaveStorageMock) SaveGuildProgress(namespace string, key string, v
 	return args.Get(0).(*pb.GuildProgress), args.Error(1)
 }
 
-func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
+func TestMyServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 	tests := []struct {
 		name            string
 		req             *pb.CreateOrUpdateGuildProgressRequest
@@ -82,7 +82,7 @@ func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 			refreshRepo := mocks.NewMockRefreshTokenRepository(ctrl)
 			configRepo := mocks.NewMockConfigRepository(ctrl)
 			storage := new(cloudsaveStorageMock)
-			service := NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, storage)
+			service := NewMyServiceServer(tokenRepo, configRepo, refreshRepo, storage)
 
 			namespace := "testNamespace"
 			guildProgressKey := fmt.Sprintf("guildProgress_%s", tt.req.GuildProgress.GuildId)
@@ -103,7 +103,7 @@ func TestGuildServiceServerImpl_CreateOrUpdateGuildProgress(t *testing.T) {
 	}
 }
 
-func TestGuildServiceServerImpl_GetGuildProgress(t *testing.T) {
+func TestMyServiceServerImpl_GetGuildProgress(t *testing.T) {
 	tests := []struct {
 		name        string
 		req         *pb.GetGuildProgressRequest
@@ -155,7 +155,7 @@ func TestGuildServiceServerImpl_GetGuildProgress(t *testing.T) {
 			refreshRepo := mocks.NewMockRefreshTokenRepository(ctrl)
 			configRepo := mocks.NewMockConfigRepository(ctrl)
 			storage := new(cloudsaveStorageMock)
-			service := NewGuildServiceServer(tokenRepo, configRepo, refreshRepo, storage)
+			service := NewMyServiceServer(tokenRepo, configRepo, refreshRepo, storage)
 			tt.mockSetup(storage, tt.req.GuildId)
 
 			// when
