@@ -1,6 +1,6 @@
 # Chapter 8: Integrating with AccelByte's CloudSave
 
-In this chapter, we'll learn how to integrate the AccelByte's CloudSave feature into our GuildService.
+In this chapter, we'll learn how to integrate the AccelByte's CloudSave feature into our Guild Service.
 
 ## 8.1. Understanding CloudSave
 
@@ -12,12 +12,12 @@ in real-time. Please refer to our docs portal for more details
 ## 8.2. Setting up CloudSave
 
 The first step to using CloudSave is setting it up. 
-In the context of our GuildService, this involves adding the CloudSave client to our server struct 
+In the context of our Guild Service, this involves adding the CloudSave client to our server struct 
 and initializing it during server startup.
 
 ```go
-type GuildServiceServerImpl struct {
-	pb.UnimplementedGuildServiceServer
+type MyServiceServerImpl struct {
+	pb.UnimplementedServiceServer
 	tokenRepo   repository.TokenRepository
 	configRepo  repository.ConfigRepository
 	refreshRepo repository.RefreshTokenRepository
@@ -48,9 +48,9 @@ if err != nil {
 
 ```
 
-## 8.3. Using CloudSave in GuildService
+## 8.3. Using CloudSave in Guild Service
 
-Let's go over an example of how we use CloudSave within our GuildService.
+Let's go over an example of how we use CloudSave within our Guild Service.
 
 When updating the guild progress, after performing any necessary validations and computations, 
 you would save the updated progress to CloudSave like so:
@@ -82,6 +82,6 @@ if err != nil {
 
 For more accurate details how it was implemented please refer to `pkg/storage/storage.go`
 
-That's it! You've now integrated AccelByte's CloudSave into your GuildService. 
+That's it! You've now integrated AccelByte's CloudSave into your Guild Service. 
 You can now use CloudSave to save and retrieve guild progress, along with any other 
 data you might need to store.

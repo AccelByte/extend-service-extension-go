@@ -8,7 +8,7 @@ This chapter offers an overview of the Guild Service's project structure. Unders
 ├── docker-compose.yaml
 ├── Makefile
 ├── apidocs                                   # Generated OpenAPI spec from proto file
-│   └── guildService.swagger.json
+│   └── service.swagger.json
 ├── docs
 ├── go.mod
 ├── go.sum
@@ -19,10 +19,10 @@ This chapter offers an overview of the Guild Service's project structure. Unders
 │   ├── proto
 │   │   ├── google                             # protobuf library 
 │   │   ├── protoc-gen-openapiv2               # protobuf library
-│   │   └── guildService.proto                 # your proto file, where you put API definition
+│   │   └── service.proto                      # your proto file, where you put API definition
 │   ├── service
-│   │   ├── guildService.go                    # the implementation for the api spec written in your proto fie 
-│   │   ├── guildService_test.go
+│   │   ├── myService.go                       # the implementation for the api spec written in your proto fie 
+│   │   ├── myService_test.go
 │   │   └── mocks                              # generated code by mockgen to help unit testing
 │   │       ├── repo_mock.go
 │   │       └── server_mock.go
@@ -43,7 +43,7 @@ The most important files and directories are:
 - `pkg/common/gateway.go`: Contains the code for our gRPC-Gateway, which translates HTTP/JSON requests into gRPC and vice versa.
 - `pkg/pb`: This directory contains the Go code that was generated from our .proto files by the protoc compiler.
 - `pkg/proto`: This directory contains our .proto files, which define our gRPC service and messages.
-- `pkg/service/guildService.go`: This directory contains the implementation of our gRPC service.
+- `pkg/service/myService.go`: This directory contains the implementation of our gRPC service.
 - `apidocs`: This is where the generated OpenAPI spec located.
 - `third_party`: This directory contains third party libraries that are used by our service.
 

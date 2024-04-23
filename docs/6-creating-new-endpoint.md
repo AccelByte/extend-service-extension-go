@@ -7,10 +7,10 @@ In this chapter, we will be adding new endpoints to our service. This involves t
 
 ## 6.1 Defining the Service in the `.proto` File
 
-gRPC services and messages are defined in `.proto` files. Our `.proto` file is located in `pkg/proto/guildService.proto`. Let's add new service methods to our `GuildService`:
+gRPC services and messages are defined in `.proto` files. Our `.proto` file is located in `pkg/proto/service.proto`. Let's add new service methods to our `Guild Service`:
 
 ```protobuf
-service GuildService {
+service Service {
 
   rpc CreateOrUpdateGuildProgress (CreateOrUpdateGuildProgressRequest) returns (CreateOrUpdateGuildProgressResponse) {
     option (permission.action) = CREATE;
@@ -71,11 +71,12 @@ message GetGuildProgressResponse {
 // OpenAPI options for the entire API.
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "Guild Service API";
+    title: "Service API";
     version: "1.0";
   };
   schemes: HTTP;
   schemes: HTTPS;
+  base_path: "/service";
 
   security_definitions: {
     security: {
