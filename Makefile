@@ -12,25 +12,12 @@ BUILDER := grpc-plugin-server-builder
 PROJECT_DIR ?= $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 proto:
-	rm -rfv pkg/pb/*
-	mkdir -p pkg/pb
-	# generate the protobuf
-	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
-			--proto_path=pkg/proto \
-			--go_out=pkg/pb \
-			--go_opt=paths=source_relative \
-			--go-grpc_out=pkg/pb \
-			--go-grpc_opt=paths=source_relative \
-			pkg/proto/*.proto
-	# generate the swagger.json
-	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ rvolosatovs/protoc:4.0.0 \
-			--proto_path=pkg/proto \
-			--grpc-gateway_out=pkg/pb \
-			--grpc-gateway_opt=logtostderr=true \
-			--grpc-gateway_opt=paths=source_relative \
-			--openapiv2_out=apidocs \
-			--openapiv2_opt=logtostderr=true \
-			pkg/proto/service.proto
+	docker run -t --rm -u $$(id -u):$$(id -g) \
+		-v $$(pwd):/build \
+		-w /build \
+		--entrypoint /bin/bash \
+		rvolosatovs/protoc:4.1.0 \
+			gen_grpc.sh
 
 lint: proto
 	rm -f lint.err
@@ -43,7 +30,7 @@ lint: proto
 
 build: proto
 	docker run -t --rm -u $$(id -u):$$(id -g) -v $(PROJECT_DIR):/data/ -w /data/ -e GOCACHE=/data/.cache/go-build $(GOLANG_DOCKER_IMAGE) \
-		sh -c "go build"
+		sh -c "go build -v"
 
 image:
 	docker buildx build -t ${IMAGE_NAME} --load .
