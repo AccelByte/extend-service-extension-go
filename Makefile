@@ -69,7 +69,7 @@ test_sample_local_hosted: proto
 test_sample_accelbyte_hosted: proto
 	@test -n "$(ENV_PATH)" || (echo "ENV_PATH is not set"; exit 1)
 ifeq ($(shell uname), Linux)
-	$(eval DARGS := -u $$(shell id -u):$$(shell id -g) --group-add $$(shell getent group docker | cut -d ':' -f 3))
+	$(eval DARGS := -u $$(shell id -u) --group-add $$(shell getent group docker | cut -d ':' -f 3))
 endif
 	docker build --tag service-extension-test-functional -f test/sample/Dockerfile test/sample && \
 	docker run --rm -t \
