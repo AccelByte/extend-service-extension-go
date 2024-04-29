@@ -17,7 +17,7 @@ proto:
 		-w /build \
 		--entrypoint /bin/bash \
 		rvolosatovs/protoc:4.1.0 \
-			gen_grpc.sh
+			proto.sh
 
 lint: proto
 	rm -f lint.err

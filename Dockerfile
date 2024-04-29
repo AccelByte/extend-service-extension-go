@@ -2,9 +2,9 @@
 FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 as grpc-gen
 WORKDIR /build
 COPY pkg/proto pkg/proto
-COPY gen_grpc.sh .
+COPY proto.sh .
 RUN mkdir -p apidocs pkg/pb
-RUN bash gen_grpc.sh
+RUN bash proto.sh
 
 
 # Extend App Builder			
