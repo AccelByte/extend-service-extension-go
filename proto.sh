@@ -16,6 +16,6 @@ protoc-wrapper -I/usr/include \
         --grpc-gateway_out=pkg/pb \
         --grpc-gateway_opt=logtostderr=true \
         --grpc-gateway_opt=paths=source_relative \
-        --openapiv2_out=apidocs \
+        --openapiv2_out=gateway/apidocs \
         --openapiv2_opt=logtostderr=true \
         pkg/proto/service.proto

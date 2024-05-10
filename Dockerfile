@@ -3,7 +3,7 @@ FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 as grpc-gen
 WORKDIR /build
 COPY pkg/proto pkg/proto
 COPY proto.sh .
-RUN mkdir -p apidocs pkg/pb
+RUN mkdir -p gateway/apidocs pkg/pb
 RUN bash proto.sh
 
 
@@ -26,8 +26,9 @@ FROM alpine:3.17.0
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
+RUN mkdir -p gateway/apidocs
+COPY --from=grpc-gen /build/gateway/apidocs gateway/apidocs
 COPY --from=builder /build/$TARGETOS/$TARGETARCH/service service
-COPY --from=grpc-gen /build/apidocs apidocs
 COPY third_party third_party
 # gRPC server port, gRPC gateway port, Prometheus /metrics port
 EXPOSE 6565 8000 8080

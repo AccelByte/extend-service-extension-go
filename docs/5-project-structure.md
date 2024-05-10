@@ -7,8 +7,9 @@ This chapter offers an overview of the Guild Service's project structure. Unders
 ├── Dockerfile
 ├── docker-compose.yaml
 ├── Makefile
-├── apidocs                                   # Generated OpenAPI spec from proto file
-│   └── service.swagger.json
+├── gateway
+│   ├── apidocs
+│       └── service.swagger.json               # Generated OpenAPI spec from proto file
 ├── docs
 ├── go.mod
 ├── go.sum
@@ -44,7 +45,7 @@ The most important files and directories are:
 - `pkg/pb`: This directory contains the Go code that was generated from our .proto files by the protoc compiler.
 - `pkg/proto`: This directory contains our .proto files, which define our gRPC service and messages.
 - `pkg/service/myService.go`: This directory contains the implementation of our gRPC service.
-- `apidocs`: This is where the generated OpenAPI spec located.
+- `gateway/apidocs`: This is where the generated OpenAPI spec located.
 - `third_party`: This directory contains third party libraries that are used by our service.
 
 In the following chapters, we will discuss how to define and implement new services and messages in our `.proto` files, how to generate Go code from these `.proto` files, and how to implement these services in our server.

@@ -157,7 +157,7 @@ func main() {
 
 	// Start the gRPC-Gateway HTTP server
 	go func() {
-		swaggerDir := "apidocs" // Path to swagger directory
+		swaggerDir := "gateway/apidocs" // Path to swagger directory
 		grpcGatewayHTTPServer := newGRPCGatewayHTTPServer(fmt.Sprintf(":%d", grpcGatewayHTTPPort), grpcGateway, logrus.New(), swaggerDir)
 		logrus.Infof("Starting gRPC-Gateway HTTP server on port %d", grpcGatewayHTTPPort)
 		if err := grpcGatewayHTTPServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
