@@ -1,5 +1,5 @@
 # gRPC Gen
-FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 as grpc-gen
+FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 AS grpc-gen
 WORKDIR /build
 COPY pkg/proto pkg/proto
 COPY proto.sh .
@@ -8,7 +8,7 @@ RUN bash proto.sh
 
 
 # Extend App Builder			
-FROM --platform=$BUILDPLATFORM golang:1.20-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG GOOS=$TARGETOS
