@@ -219,3 +219,20 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) SetRefreshIsRunningInBackgroun
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRefreshIsRunningInBackground", reflect.TypeOf((*MockRefreshTokenRepository)(nil).SetRefreshIsRunningInBackground), arg0)
 }
+
+func SetupTokenRepositoryExpectations(tokenRepo *MockTokenRepository) {
+	expiresIn := int32(3600)
+	tokenRepo.EXPECT().Store(gomock.Any()).Return(nil).AnyTimes()
+	tokenRepo.EXPECT().GetToken().Return(&iamclientmodels.OauthmodelTokenResponseV3{ExpiresIn: &expiresIn}, nil).AnyTimes()
+	tokenRepo.EXPECT().TokenIssuedTimeUTC().Return(time.Now()).AnyTimes()
+}
+
+func SetupRefreshTokenRepositoryExpectations(refreshRepo *MockRefreshTokenRepository) {
+	refreshRate := float64(1) // Example refresh rate
+	refreshRepo.EXPECT().GetRefreshRate().Return(refreshRate).AnyTimes()
+}
+
+func MonkeyPatchTokenExpiry(token *iamclientmodels.OauthmodelTokenResponseV3, expiresIn int32) {
+	token.ExpiresIn = &expiresIn       // Monkey-patch, force expiry Token
+	token.RefreshExpiresIn = expiresIn // Monkey-patch, force expiry refreshToken
+}

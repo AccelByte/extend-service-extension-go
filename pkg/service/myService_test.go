@@ -11,12 +11,19 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/repository"
+	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"go.uber.org/mock/gomock"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"time"
 )
 
 //go:generate mockgen -destination ./mocks/server_mock.go -package mocks extend-custom-guild-service/pkg/pb myServiceServer
@@ -172,4 +179,98 @@ func TestMyServiceServerImpl_GetGuildProgress(t *testing.T) {
 			storage.AssertExpectations(t)
 		})
 	}
+}
+func TestMyServiceServerImpl_With_Refresh(t *testing.T) {
+	tests := []struct {
+		name            string
+		req             *pb.CreateOrUpdateGuildProgressRequest
+		wantErr         bool
+		expectedErr     error
+		expectedGuildId string
+	}{
+		{
+			name: "successful create guild with refresh token",
+			req: &pb.CreateOrUpdateGuildProgressRequest{
+				Namespace: "testNamespace",
+				GuildProgress: &pb.GuildProgress{
+					GuildId:    "testId",
+					Objectives: map[string]int32{"testGoal": 1},
+				},
+			},
+			wantErr:         false,
+			expectedGuildId: "testId",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			tokenRepo := mocks.NewMockTokenRepository(ctrl)
+			refreshRepo := mocks.NewMockRefreshTokenRepository(ctrl)
+			configRepo := mocks.NewMockConfigRepository(ctrl)
+			storage := new(cloudsaveStorageMock)
+
+			oauthService := iam.OAuth20Service{
+				TokenRepository:        tokenRepo,
+				RefreshTokenRepository: refreshRepo,
+				ConfigRepository:       configRepo,
+			}
+			mocks.SetupTokenRepositoryExpectations(tokenRepo)
+			mocks.SetupRefreshTokenRepositoryExpectations(refreshRepo)
+
+			getToken, err := oauthService.TokenRepository.GetToken()
+			require.NoError(t, err)
+
+			Repository := oauthService.GetAuthSession().Refresh
+
+			t.Logf("token is expected to expire in... : %v", repository.GetSecondsTillExpiry(tokenRepo, Repository.GetRefreshRate()))
+
+			// Force the Token to be expired
+			expiresIn := int32(5)
+			mocks.MonkeyPatchTokenExpiry(getToken, expiresIn)
+
+			getExpiresIn, err := repository.GetExpiresIn(oauthService.TokenRepository)
+			require.NoError(t, err)
+			t.Logf("monkey patched expiring in %vs", *getExpiresIn)
+
+			secondsTillExpiry := repository.GetSecondsTillExpiry(oauthService.TokenRepository, Repository.GetRefreshRate())
+			t.Logf("token is forced to expire in... : %v", secondsTillExpiry)
+
+			errStore := oauthService.TokenRepository.Store(*getToken) // store the new monkey-patched Token
+			require.NoError(t, errStore)
+
+			sleepUntilTokenExpires(getExpiresIn)
+
+			hasTokenExpired := repository.HasTokenExpired(oauthService.TokenRepository, Repository.GetRefreshRate())
+			assert.True(t, hasTokenExpired, "token should be expired.") // Token expired
+			t.Log("token has expired and refreshed.")
+
+			// token is renewed and call the service
+			service := NewMyServiceServer(tokenRepo, configRepo, refreshRepo, storage)
+
+			namespace := "testNamespace"
+			guildProgressKey := fmt.Sprintf("guildProgress_%s", tt.req.GuildProgress.GuildId)
+			storage.On("SaveGuildProgress", namespace, guildProgressKey, tt.req.GuildProgress).Return(tt.req.GetGuildProgress(), tt.expectedErr)
+
+			// when
+			res, err := service.CreateOrUpdateGuildProgress(context.Background(), tt.req)
+
+			// then
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedGuildId, res.GuildProgress.GuildId)
+			}
+			storage.AssertExpectations(t)
+		})
+	}
+}
+
+func sleepUntilTokenExpires(getExpiresIn *int32) {
+	tdu := time.Duration(*getExpiresIn) * time.Second
+	logrus.Printf("sleep for %v second...", tdu)
+	time.Sleep(tdu)
 }
