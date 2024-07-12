@@ -75,6 +75,10 @@ func (p *ProtoPermissionExtractorImpl) ExtractPermission(infoUnary *grpc.UnarySe
 	action := proto.GetExtension(method.Options(), pb.E_Action).(pb.Action)
 	permission := wrapPermission(resource, int(action.Number()))
 
+	if resource == "" {
+		return nil, nil
+	}
+
 	return &permission, nil
 }
 
