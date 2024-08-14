@@ -7,7 +7,7 @@ ensure that everything is working as expected.
 
 ## Setup
 
-To be able to run this sample app, you will need to follow these setup steps.
+To be able to run this app, you will need to follow these setup steps.
 
 - Create a docker compose `.env` file by copying the content of [.env.template](../.env.template) file.
 
@@ -39,33 +39,19 @@ To change the base path you just need to define it in the envar `BASE_PATH`
 
 ## Building
 
-To build this sample app, use the following command.
+To build this app, use the following command.
 
-```
+```shell
 make build
-```
-
-To build and create a docker image of this sample app, use the following command.
-
-```
-make image
 ```
 
 For more details about these commands, see [Makefile](../Makefile).
 
 ## Running
 
-To run the existing docker image of this sample app which has been built before, use the following command.
+To (build and) run this app in a container, use the following command.
 
-```
-docker compose up
-```
-
-OR
-
-To build, create a docker image, and run this sample app in one go, use the following command.
-
-```
+```shell
 docker compose up --build
 ```
 
