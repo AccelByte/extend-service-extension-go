@@ -29,6 +29,29 @@ You can clone this repository to begin developing your own
 endpoints in `service.proto` file and implementing the handlers for those 
 endpoints.
 
+## Project Structure
+
+Customizing your Extend Service Extension app involves modifying the `service.proto` and `myService.go` files. The app initializes key components, such as the gRPC server, in `main.go`. When a request is made to the RESTful endpoint, the gRPC gateway handles it and forwards it to the corresponding gRPC method. Before `myService.go` executes any custom logic based on the request, the `authServerInterceptor.go` first verifies that the request has the necessary access token and authorization. No other files need to be modified unless you require further customization.
+
+```shell
+.
+├── main.go   # App starts here
+├── pkg
+│   ├── common
+│   │   ├── authServerInterceptor.go    # gRPC server interceptor for access token authentication and authorization
+│   │   ├── ...
+│   ├── pb    # gRPC stubs generated from gRPC server protobuf
+│   │   └── ...
+│   ├── proto
+│   │   ├── service.proto     # gRPC server protobuf with additional options for exposing as RESTful web service
+│   │   └── ...
+│   ├── service
+│   │   ├── myService.go      # gRPC server implementation containing the custom logic
+│   │   └── ...
+│   └── ...
+└── ...
+```
+
 ## Prerequisites
 
 1. Windows 11 WSL2 or Linux Ubuntu 22.04 or macOS 14+ with the following tools installed:
