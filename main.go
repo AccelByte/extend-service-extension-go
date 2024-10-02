@@ -80,12 +80,10 @@ func main() {
 		logging.WithDurationField(logging.DurationToDurationField),
 	}
 	unaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		otelgrpc.UnaryServerInterceptor(),
 		prometheusGrpc.UnaryServerInterceptor,
 		logging.UnaryServerInterceptor(common.InterceptorLogger(logrus.New()), opts...),
 	}
 	streamServerInterceptors := []grpc.StreamServerInterceptor{
-		otelgrpc.StreamServerInterceptor(),
 		prometheusGrpc.StreamServerInterceptor,
 		logging.StreamServerInterceptor(common.InterceptorLogger(logrus.New()), opts...),
 	}
@@ -118,6 +116,7 @@ func main() {
 
 	// Create gRPC Server
 	s := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(unaryServerInterceptors...),
 		grpc.ChainStreamInterceptor(streamServerInterceptors...),
 	)
