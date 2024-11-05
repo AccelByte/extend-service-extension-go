@@ -22,7 +22,7 @@ RUN go build -v -o $TARGETOS/$TARGETARCH/service
 
 
 # Extend App
-FROM alpine:3.17.0
+FROM alpine:3.19
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
