@@ -47,7 +47,7 @@ build: proto
 			-v $$(pwd):/data \
 			-w /data \
 			$(GOLANG_DOCKER_IMAGE) \
-			sh -c "go build -v"
+			sh -c "go build -modcacherw -v"
 
 image:
 	docker buildx build -t ${IMAGE_NAME} --load .
