@@ -216,6 +216,6 @@ func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Dura
 		PublicKeys:            make(map[string]*rsa.PublicKey),
 		LocalValidationActive: validateLocally,
 		RevokedUsers:          make(map[string]time.Time),
-		Roles:                 make(map[string]*iamclientmodels.ModelRoleResponseV3),
+		Roles:                 make(map[string]*iamclientmodels.ModelRolePermissionResponseV3),
 	}
 }
