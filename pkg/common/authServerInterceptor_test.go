@@ -28,7 +28,7 @@ type authValidatorMock struct {
 	mock.Mock
 }
 
-func (a *authValidatorMock) Initialize() {}
+func (a *authValidatorMock) Initialize(ctx ...context.Context) {}
 func (a *authValidatorMock) Validate(token string, permission *iam.Permission, namespace *string, userId *string) error {
 	args := a.Called(token, permission, namespace, userId)
 
