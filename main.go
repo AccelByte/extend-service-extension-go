@@ -1,4 +1,4 @@
-// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2023-2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -53,8 +53,6 @@ import (
 )
 
 const (
-	environment         = "production"
-	id                  = int64(1)
 	metricsEndpoint     = "/metrics"
 	metricsPort         = 8080
 	grpcServerPort      = 6565
@@ -62,12 +60,13 @@ const (
 )
 
 var (
-	serviceName = common.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGoDocker")
+	serviceName = common.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGo")
 	logLevelStr = common.GetEnv("LOG_LEVEL", logrus.InfoLevel.String())
+	basePath	= common.GetBasePath()
 )
 
 func main() {
-	logrus.Infof("starting app server..")
+	logrus.Infof("Starting %s...", serviceName)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -156,13 +155,12 @@ func main() {
 
 	// Enable gRPC Reflection
 	reflection.Register(s)
-	logrus.Infof("gRPC reflection enabled")
 
 	// Enable gRPC Health Check
 	grpc_health_v1.RegisterHealthServer(s, health.NewServer())
 
 	// Create a new HTTP server for the gRPC-Gateway
-	grpcGateway, err := common.NewGateway(ctx, fmt.Sprintf("localhost:%d", grpcServerPort))
+	grpcGateway, err := common.NewGateway(ctx, fmt.Sprintf("localhost:%d", grpcServerPort), basePath)
 	if err != nil {
 		logrus.Fatalf("Failed to create gRPC-Gateway: %v", err)
 	}
@@ -191,12 +189,12 @@ func main() {
 		http.Handle(metricsEndpoint, promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{}))
 		logrus.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", metricsPort), nil))
 	}()
-	logrus.Infof("serving prometheus metrics at: (:%d%s)", metricsPort, metricsEndpoint)
+	logrus.Infof("Metrics endpoint: (:%d%s)", metricsPort, metricsEndpoint)
 
 	// Set Tracer Provider
-	tracerProvider, err := common.NewTracerProvider(serviceName, environment, id)
+	tracerProvider, err := common.NewTracerProvider(serviceName)
 	if err != nil {
-		logrus.Fatalf("failed to create tracer provider: %v", err)
+		logrus.Fatalf("Failed to create tracer provider: %v", err)
 
 		return
 	}
@@ -206,7 +204,6 @@ func main() {
 			logrus.Fatal(err)
 		}
 	}(ctx)
-	logrus.Infof("set tracer provider: (name: %s environment: %s id: %d)", serviceName, environment, id)
 
 	// Set Text Map Propagator
 	otel.SetTextMapPropagator(
@@ -216,30 +213,28 @@ func main() {
 			propagation.Baggage{},
 		),
 	)
-	logrus.Infof("set text map propagator")
 
-	// Start gRPC Server
-	logrus.Infof("starting gRPC server..")
+	// Start gRPC Server	
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcServerPort))
 	if err != nil {
-		logrus.Fatalf("failed to listen to tcp:%d: %v", grpcServerPort, err)
+		logrus.Fatalf("Failed to listen to tcp:%d: %v", grpcServerPort, err)
 
 		return
 	}
 	go func() {
 		if err = s.Serve(lis); err != nil {
-			logrus.Fatalf("failed to run gRPC server: %v", err)
+			logrus.Fatalf("Failed to run gRPC server: %v", err)
 
 			return
 		}
 	}()
-	logrus.Infof("gRPC server started")
-	logrus.Infof("app server started on base path: " + common.BasePath)
+
+	logrus.Infof("%s started", serviceName)
 
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	<-ctx.Done()
-	logrus.Infof("signal received")
+	logrus.Infof("SIGTERM received")
 }
 
 func newGRPCGatewayHTTPServer(
@@ -282,7 +277,7 @@ func loggingMiddleware(logger *logrus.Logger, next http.Handler) http.Handler {
 func serveSwaggerUI(mux *http.ServeMux) {
 	swaggerUIDir := "third_party/swagger-ui"
 	fileServer := http.FileServer(http.Dir(swaggerUIDir))
-	swaggerUiPath := fmt.Sprintf("%s/apidocs/", common.BasePath)
+	swaggerUiPath := fmt.Sprintf("%s/apidocs/", basePath)
 	mux.Handle(swaggerUiPath, http.StripPrefix(swaggerUiPath, fileServer))
 }
 
@@ -304,7 +299,7 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 		}
 
 		// Update the base path
-		swagger.Spec().BasePath = common.BasePath
+		swagger.Spec().BasePath = basePath
 
 		updatedSwagger, err := swagger.Spec().MarshalJSON()
 		if err != nil {
@@ -327,6 +322,6 @@ func serveSwaggerJSON(mux *http.ServeMux, swaggerDir string) {
 			return
 		}
 	})
-	apidocsPath := fmt.Sprintf("%s/apidocs/api.json", common.BasePath)
+	apidocsPath := fmt.Sprintf("%s/apidocs/api.json", basePath)
 	mux.Handle(apidocsPath, fileHandler)
 }

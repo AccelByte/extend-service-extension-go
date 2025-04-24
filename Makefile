@@ -7,7 +7,7 @@ SHELL := /bin/bash
 IMAGE_NAME := $(shell basename "$$(pwd)")-app
 BUILDER := extend-builder
 
-GOLANG_DOCKER_IMAGE := golang:1.20
+GOLANG_DOCKER_IMAGE := golang:1.24
 
 proto:
 	docker run -t --rm -u $$(id -u):$$(id -g) \

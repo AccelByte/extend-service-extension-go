@@ -8,7 +8,7 @@ RUN bash proto.sh
 
 
 # Extend App Builder			
-FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.21 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG GOOS=$TARGETOS
@@ -22,7 +22,7 @@ RUN go build -v -o $TARGETOS/$TARGETARCH/service
 
 
 # Extend App
-FROM alpine:3.19
+FROM alpine:3.21
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
