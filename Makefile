@@ -9,8 +9,6 @@ BUILDER := extend-builder
 
 GOLANG_DOCKER_IMAGE := golang:1.20
 
-TEST_SAMPLE_CONTAINER_NAME := sample-service-extension-test
-
 proto:
 	docker run -t --rm -u $$(id -u):$$(id -g) \
 		-v $$(pwd):/data \
@@ -64,10 +62,3 @@ imagex_push:
 	docker buildx inspect $(BUILDER) || docker buildx create --name $(BUILDER) --use
 	docker buildx build -t ${REPO_URL}:${IMAGE_TAG} --platform linux/amd64 --push .
 	docker buildx rm --keep-state $(BUILDER)
-
-test:
-	docker run -t --rm -u $$(id -u):$$(id -g) \
-		-v $$(pwd):/data/ -w /data/ \
-		-e GOCACHE=/data/.cache/go-build \
-		-e BASE_PATH=/guild \
-		$(GOLANG_DOCKER_IMAGE) sh -c "go test -v ./..."
