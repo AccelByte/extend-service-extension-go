@@ -205,7 +205,7 @@ func wrapPermission(resource string, action int) iam.Permission {
 }
 
 func NewTokenValidator(authService iam.OAuth20Service, refreshInterval time.Duration, validateLocally bool) validator.AuthTokenValidator {
-	return &validator.TokenValidator{
+	return &iam.TokenValidator{
 		AuthService:     authService,
 		RefreshInterval: refreshInterval,
 
