@@ -5,6 +5,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	pb "extend-custom-guild-service/pkg/pb"
 
@@ -17,8 +18,8 @@ import (
 )
 
 type Storage interface {
-	GetGuildProgress(namespace string, key string) (*pb.GuildProgress, error)
-	SaveGuildProgress(namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error)
+	GetGuildProgress(ctx context.Context, namespace string, key string) (*pb.GuildProgress, error)
+	SaveGuildProgress(ctx context.Context, namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error)
 }
 
 type CloudsaveStorage struct {
@@ -31,11 +32,12 @@ func NewCloudSaveStorage(csStorage *cloudsave.AdminGameRecordService) *Cloudsave
 	}
 }
 
-func (c *CloudsaveStorage) SaveGuildProgress(namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error) {
+func (c *CloudsaveStorage) SaveGuildProgress(ctx context.Context, namespace string, key string, value *pb.GuildProgress) (*pb.GuildProgress, error) {
 	input := &admin_game_record.AdminPostGameRecordHandlerV1Params{
 		Body:      value,
 		Key:       key,
 		Namespace: namespace,
+		Context:   ctx,
 	}
 	response, err := c.csStorage.AdminPostGameRecordHandlerV1Short(input)
 	if err != nil {
@@ -50,10 +52,11 @@ func (c *CloudsaveStorage) SaveGuildProgress(namespace string, key string, value
 	return guildProgress, nil
 }
 
-func (c *CloudsaveStorage) GetGuildProgress(namespace string, key string) (*pb.GuildProgress, error) {
+func (c *CloudsaveStorage) GetGuildProgress(ctx context.Context, namespace string, key string) (*pb.GuildProgress, error) {
 	input := &admin_game_record.AdminGetGameRecordHandlerV1Params{
 		Key:       key,
 		Namespace: namespace,
+		Context:   ctx,
 	}
 	response, err := c.csStorage.AdminGetGameRecordHandlerV1Short(input)
 	if err != nil {

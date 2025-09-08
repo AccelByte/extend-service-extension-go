@@ -45,7 +45,7 @@ func (g MyServiceServerImpl) CreateOrUpdateGuildProgress(
 	namespace := req.Namespace
 	guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildProgress.GuildId)
 	guildProgressValue := req.GuildProgress
-	guildProgress, err := g.storage.SaveGuildProgress(namespace, guildProgressKey, guildProgressValue)
+	guildProgress, err := g.storage.SaveGuildProgress(ctx, namespace, guildProgressKey, guildProgressValue)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error updating guild progress: %v", err)
 	}
@@ -61,7 +61,7 @@ func (g MyServiceServerImpl) GetGuildProgress(
 	namespace := req.Namespace
 	guildProgressKey := fmt.Sprintf("guildProgress_%s", req.GuildId)
 
-	guildProgress, err := g.storage.GetGuildProgress(namespace, guildProgressKey)
+	guildProgress, err := g.storage.GetGuildProgress(ctx, namespace, guildProgressKey)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error getting guild progress: %v", err)
 	}
