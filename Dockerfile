@@ -1,35 +1,83 @@
-# gRPC Gen
-FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 AS grpc-gen
+# Copyright (c) 2025 AccelByte Inc. All Rights Reserved.
+# This is licensed software from AccelByte Inc, for limitations
+# and restrictions contact your company contract manager.
+
+# ----------------------------------------
+# Stage 1: Protoc Code Generation
+# ----------------------------------------
+FROM --platform=$BUILDPLATFORM rvolosatovs/protoc:4.1.0 AS proto-builder
+
+# Set working directory.
 WORKDIR /build
-COPY pkg/proto pkg/proto
+
+# Copy proto sources and generator script.
 COPY proto.sh .
-RUN mkdir -p gateway/apidocs pkg/pb
-RUN bash proto.sh
+COPY pkg/proto/ pkg/proto/
+
+# Make script executable and run it.
+RUN chmod +x proto.sh && \
+    ./proto.sh
 
 
-# Extend App Builder			
+
+# ----------------------------------------
+# Stage 3: gRPC Server Builder
+# ----------------------------------------
 FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.22 AS builder
+
+# Set the value for the target OS and architecture.
 ARG TARGETOS
 ARG TARGETARCH
 ARG GOOS=$TARGETOS
 ARG GOARCH=$TARGETARCH
+
+# Set the value for GOCACHE and GOMODCACHE.
+ARG GOCACHE=/tmp/build-cache/go/cache
+ARG GOMODCACHE=/tmp/build-cache/go/modcache
+
+# Set working directory.
 WORKDIR /build
+
+# Copy and download the dependencies for application.
 COPY go.mod go.sum ./
 RUN go mod download
+
+# Copy application code.
 COPY . .
-COPY --from=grpc-gen /build/pkg/pb pkg/pb
-RUN go build -v -o $TARGETOS/$TARGETARCH/service
+
+# Copy generated protobuf files from stage 1.
+COPY --from=proto-builder /build/pkg/pb pkg/pb
+
+# Build the Go application binary for the target OS and architecture.
+RUN go build -v -modcacherw -o $TARGETOS/$TARGETARCH/service
 
 
-# Extend App
+# ----------------------------------------
+# Stage 3: Runtime Container
+# ----------------------------------------
 FROM alpine:3.22
+
+# Set the value for the target OS and architecture.
 ARG TARGETOS
 ARG TARGETARCH
+
+# Set working directory.
 WORKDIR /app
 RUN mkdir -p gateway/apidocs
-COPY --from=grpc-gen /build/gateway/apidocs gateway/apidocs
+
+# Copy build from stage 2.
+COPY --from=proto-builder /build/gateway/apidocs gateway/apidocs
 COPY --from=builder /build/$TARGETOS/$TARGETARCH/service service
 COPY third_party third_party
-# gRPC server port, gRPC gateway port, Prometheus /metrics port
-EXPOSE 6565 8000 8080
+
+# Plugin Arch gRPC Server Port.
+EXPOSE 6565
+
+# gRPC Gateway Port.
+EXPOSE 8000
+
+# Prometheus /metrics Web Server Port.
+EXPOSE 8080
+
+# Entrypoint.
 CMD [ "/app/service" ]
