@@ -49,7 +49,7 @@ RUN apt-get update \
         CYGWIN*|MINGW*|MSYS*) echo "windows" ;; \
         *) echo "linux" ;; \
         esac) \
-    # Install Extend Helper CLI - use linux_${GOARCH_SUFFIX} for linux, else ${OS_SUFFIX}_${GOARCH_SUFFIX}
+    # Install Extend Helper CLI - use linux_amd64 for linux, else ${OS_SUFFIX}_${GOARCH_SUFFIX}, until the new linux_arm64 is released
     && EXTEND_HELPER_CLI_SUFFIX=$(if [ "$OS_SUFFIX" = "linux" ]; then \
         echo "linux_amd64"; \
       else \
