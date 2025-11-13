@@ -47,6 +47,7 @@
       "mcp": {
         "servers": {}
       }
+    }
   },
   // Install common utilities
   "features": {

@@ -38,19 +38,3 @@ protoc \
   --openapiv2_opt=logtostderr=true \
   "${PROTO_DIR}"/service.proto
 
-
-# Generate protobuf, gateway, swagger files
-# protoc \
-#   -I "${PROTO_DIR}" \
-#   --go_out="${OUT_DIR}" \
-#   --go_opt=paths=source_relative \
-#   --go-grpc_out="${OUT_DIR}" \
-#   --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false \
-#   --grpc-gateway_out=logtostderr=true:"${OUT_DIR}" \
-#   --grpc-gateway_opt=paths=source_relative \
-#   --openapiv2_out "${APIDOCS_DIR}" \
-#   --openapiv2_opt=logtostderr=true \
-#   "${PROTO_DIR}"/service.proto "${PROTO_DIR}"/permission.proto
-
-# Remove google directory since the protobuf package already includes it.
-#rm -rf src/google

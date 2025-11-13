@@ -17,7 +17,6 @@ ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 ARG PROTOC_VERSION=21.9
 ARG GO_VERSION=1.24.10
-ARG EXTEND_HELPER_CLI_VERSION=0.0.9
 ARG HOST_OS
 
 # Configure apt and install packages
@@ -49,12 +48,6 @@ RUN apt-get update \
         CYGWIN*|MINGW*|MSYS*) echo "windows" ;; \
         *) echo "linux" ;; \
         esac) \
-    # Install Extend Helper CLI - use linux_amd64 for linux, else ${OS_SUFFIX}_${GOARCH_SUFFIX}, until the new linux_arm64 is released
-    && EXTEND_HELPER_CLI_SUFFIX=$(if [ "$OS_SUFFIX" = "linux" ]; then \
-        echo "linux_amd64"; \
-      else \
-        echo "${OS_SUFFIX}_${GOARCH_SUFFIX}"; \
-      fi) \
     # Install Protocol Buffers compiler
     && wget -O protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${ARCH_SUFFIX}.zip \
     && unzip protoc.zip -d /usr/local \
@@ -65,10 +58,6 @@ RUN apt-get update \
     && wget -O go.tar.gz https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH_SUFFIX}.tar.gz \
     && tar -C /usr/local -xzf go.tar.gz \
     && rm go.tar.gz \
-    #
-    # Install Extend Helper CLI
-    && wget -O /usr/local/bin/extend-helper-cli https://github.com/AccelByte/extend-helper-cli/releases/download/v${EXTEND_HELPER_CLI_VERSION}/extend-helper-cli-${EXTEND_HELPER_CLI_SUFFIX} \
-    && chmod +x /usr/local/bin/extend-helper-cli \
     #
     # Clean up
     && apt-get autoremove -y \

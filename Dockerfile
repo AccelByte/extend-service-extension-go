@@ -111,7 +111,7 @@ EXPOSE 8000
 EXPOSE 8080
 
 # Switch back to dialog for any ad-hoc use of apt-get
-#ENV DEBIAN_FRONTEND=dialog
+ENV DEBIAN_FRONTEND=dialog
 
 # Entrypoint.
 CMD [ "/app/service" ]
