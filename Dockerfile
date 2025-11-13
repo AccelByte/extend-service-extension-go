@@ -13,10 +13,6 @@ ARG TARGETARCH
 ARG GOOS=$TARGETOS
 ARG GOARCH=$TARGETARCH
 
-# Set the value for GOCACHE and GOMODCACHE.
-ARG GOCACHE=/tmp/build-cache/go/cache
-ARG GOMODCACHE=/tmp/build-cache/go/modcache
-
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
@@ -94,9 +90,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application binary for the target OS and architecture.
-RUN --mount=type=cache,target=$GOCACHE \
-    --mount=type=cache,target=$GOMODCACHE \
-    go build -v -modcacherw -o /app/service
+RUN go build -v -modcacherw -o /app/service
 
 # Set working directory.
 WORKDIR /app

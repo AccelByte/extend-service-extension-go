@@ -17,7 +17,7 @@ ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
 ARG PROTOC_VERSION=21.9
 ARG GO_VERSION=1.24.10
-ARG EXTEND_HELPER_CLI_VERSION=0.0.8
+ARG EXTEND_HELPER_CLI_VERSION=0.0.9
 ARG HOST_OS
 
 # Configure apt and install packages
@@ -79,8 +79,6 @@ RUN apt-get update \
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
-
-
 
 # Create user group, user account, and configure passwordless sudo access
 RUN groupadd --gid $USER_GID $USERNAME \

@@ -44,7 +44,9 @@
         "go.goroot": "/usr/local/go",
         "terminal.integrated.defaultProfile.linux": "bash"
       },
-    }
+      "mcp": {
+        "servers": {}
+      }
   },
   // Install common utilities
   "features": {
