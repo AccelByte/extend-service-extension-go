@@ -31,6 +31,7 @@ fi
 # Install Go dependencies
 echo "📦 Installing Go dependencies..."
 go mod download
+go mod tidy
 
 # Make scripts executable
 echo "🔧 Setting up scripts..."
