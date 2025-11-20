@@ -94,9 +94,12 @@ func NewUnaryAuthServerIntercept(
 				return nil, err
 			}
 
-			err = checkAuthorizationMetadata(ctx, permission)
-			if err != nil {
-				return nil, err
+			// Only check authorization if permission is required
+			if permission != nil {
+				err = checkAuthorizationMetadata(ctx, permission)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -139,9 +142,12 @@ func NewStreamAuthServerIntercept(
 				return err
 			}
 
-			err = checkAuthorizationMetadata(ss.Context(), permission)
-			if err != nil {
-				return err
+			// Only check authorization if permission is required
+			if permission != nil {
+				err = checkAuthorizationMetadata(ss.Context(), permission)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
