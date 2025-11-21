@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	pb "extend-custom-guild-service/pkg/pb"
-
+	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -26,85 +26,18 @@ import (
 	"github.com/AccelByte/accelbyte-go-sdk/iam-sdk/pkg/iamclientmodels"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/service/iam"
 	"github.com/AccelByte/accelbyte-go-sdk/services-api/pkg/utils/auth/validator"
-	"github.com/pkg/errors"
+
+	pb "extend-custom-guild-service/pkg/pb"
 )
 
 var (
 	Validator validator.AuthTokenValidator
 )
 
-type ProtoPermissionExtractor interface {
-	ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (permission *iam.Permission, err error)
-}
-
-func NewProtoPermissionExtractor() *ProtoPermissionExtractorImpl {
-	return &ProtoPermissionExtractorImpl{}
-}
-
-type ProtoPermissionExtractorImpl struct{}
-
-func (p *ProtoPermissionExtractorImpl) ExtractPermission(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (*iam.Permission, error) {
-	if infoUnary != nil && infoStream != nil {
-		return nil, errors.New("both infoUnary and infoStream cannot be filled at the same time")
-	}
-
-	var serviceName string
-	var methodName string
-	var err error
-
-	if infoUnary != nil {
-		serviceName, methodName, err = parseFullMethod(infoUnary.FullMethod)
-	} else if infoStream != nil {
-		serviceName, methodName, err = parseFullMethod(infoStream.FullMethod)
-	} else {
-		return nil, errors.New("both infoUnary and infoStream are nil")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// Read the required permission stated in the proto file
-	desc, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(serviceName))
-	if err != nil {
-		return nil, err
-	}
-
-	serviceDesc := desc.(protoreflect.ServiceDescriptor)
-	method := serviceDesc.Methods().ByName(protoreflect.Name(methodName))
-	resource := proto.GetExtension(method.Options(), pb.E_Resource).(string)
-	action := proto.GetExtension(method.Options(), pb.E_Action).(pb.Action)
-	permission := wrapPermission(resource, int(action.Number()))
-
-	if resource == "" {
-		return nil, nil
-	}
-
-	return &permission, nil
-}
-
-func NewUnaryAuthServerIntercept(
-	permissionExtractor ProtoPermissionExtractor,
-) func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { // nolint
-
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if !skipCheckAuthorizationMetadata(info.FullMethod) {
-			// Extract permission stated in the proto file
-			permission, err := permissionExtractor.ExtractPermission(info, nil)
-			if err != nil {
-				return nil, err
-			}
-
-			// Only check authorization if permission is required
-			if permission != nil {
-				err = checkAuthorizationMetadata(ctx, permission)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-
-		return handler(ctx, req)
-	}
+// AuthRequirement represents the authentication requirements for a method.
+type AuthRequirement struct {
+	RequireToken bool
+	Permission   *iam.Permission
 }
 
 func parseFullMethod(fullMethod string) (string, string, error) {
@@ -131,40 +64,98 @@ func parseFullMethod(fullMethod string) (string, string, error) {
 	return serviceName, methodName, nil
 }
 
-func NewStreamAuthServerIntercept(
-	permissionExtractor ProtoPermissionExtractor,
-) func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if !skipCheckAuthorizationMetadata(info.FullMethod) {
-			// Extract permission stated in the proto file
-			permission, err := permissionExtractor.ExtractPermission(nil, info)
-			if err != nil {
-				return err
-			}
-
-			// Only check authorization if permission is required
-			if permission != nil {
-				err = checkAuthorizationMetadata(ss.Context(), permission)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		return handler(srv, ss)
+func extractAuthRequirement(infoUnary *grpc.UnaryServerInfo, infoStream *grpc.StreamServerInfo) (*AuthRequirement, error) {
+	if infoUnary != nil && infoStream != nil {
+		return nil, errors.New("both infoUnary and infoStream cannot be filled at the same time")
 	}
+
+	var serviceName string
+	var methodName string
+	var err error
+
+	if infoUnary != nil {
+		serviceName, methodName, err = parseFullMethod(infoUnary.FullMethod)
+	} else if infoStream != nil {
+		serviceName, methodName, err = parseFullMethod(infoStream.FullMethod)
+	} else {
+		return nil, errors.New("both infoUnary and infoStream are nil")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the method descriptor from the proto file
+	desc, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(serviceName))
+	if err != nil {
+		return nil, err
+	}
+
+	serviceDesc := desc.(protoreflect.ServiceDescriptor)
+	method := serviceDesc.Methods().ByName(protoreflect.Name(methodName))
+	methodOptions := method.Options()
+
+	// Check if the OpenAPI v2 operation specifies security requirements (e.g., Bearer auth)
+	hasBearerSecurity := hasSecurityScheme(methodOptions, "Bearer")
+
+	// Check for permission.action and permission.resource
+	// Safely extract extensions with type assertions
+	var resource string
+	if resExt := proto.GetExtension(methodOptions, pb.E_Resource); resExt != nil {
+		if res, ok := resExt.(string); ok {
+			resource = res
+		}
+	}
+
+	var action pb.Action
+	if actExt := proto.GetExtension(methodOptions, pb.E_Action); actExt != nil {
+		if act, ok := actExt.(pb.Action); ok {
+			action = act
+		}
+	}
+
+	// If both permission.action and permission.resource are set, require permission
+	var permission *iam.Permission
+	if resource != "" && action.Number() != 0 {
+		permission = &iam.Permission{
+			Action:   int(action.Number()),
+			Resource: resource,
+		}
+	}
+
+	return &AuthRequirement{
+		RequireToken: hasBearerSecurity,
+		Permission:   permission,
+	}, nil
 }
 
-func skipCheckAuthorizationMetadata(fullMethod string) bool {
-	if strings.HasPrefix(fullMethod, "/grpc.reflection.v1alpha.ServerReflection/") {
-		return true
+func hasSecurityScheme(methodOptions protoreflect.ProtoMessage, schemeName string) bool {
+	// Get the openapiv2_operation extension
+	opExt := proto.GetExtension(methodOptions, options.E_Openapiv2Operation)
+	if opExt == nil {
+		return false
 	}
 
-	if strings.HasPrefix(fullMethod, "/grpc.health.v1.Health/") {
-		return true
+	operation, ok := opExt.(*options.Operation)
+	if !ok || operation == nil {
+		return false
+	}
+
+	// Check if security is defined and has at least one security requirement with the specified scheme
+	for _, securityReq := range operation.Security {
+		if securityReq == nil {
+			continue
+		}
+		// Check if the security requirement map contains the specified scheme key
+		if _, hasScheme := securityReq.SecurityRequirement[schemeName]; hasScheme {
+			return true
+		}
 	}
 
 	return false
+}
+
+func getNamespace() string {
+	return GetEnv("AB_NAMESPACE", "accelbyte")
 }
 
 func checkAuthorizationMetadata(ctx context.Context, permission *iam.Permission) error {
@@ -199,14 +190,55 @@ func checkAuthorizationMetadata(ctx context.Context, permission *iam.Permission)
 	return nil
 }
 
-func getNamespace() string {
-	return GetEnv("AB_NAMESPACE", "accelbyte")
+func NewUnaryAuthServerIntercept() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { // nolint
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		// Extract auth requirement from the proto file
+		requirement, err := extractAuthRequirement(info, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		// If no auth requirement, skip all auth checks (public access)
+		if requirement == nil {
+			return handler(ctx, req)
+		}
+
+		// Enforce auth whenever the proto declares Bearer security or explicit permissions
+		// (treat permissions as authoritative even if the security block was omitted by mistake)
+		if requirement.RequireToken || requirement.Permission != nil {
+			err = checkAuthorizationMetadata(ctx, requirement.Permission)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return handler(ctx, req)
+	}
 }
 
-func wrapPermission(resource string, action int) iam.Permission {
-	return iam.Permission{
-		Action:   action,
-		Resource: resource,
+func NewStreamAuthServerIntercept() func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		// Extract auth requirement from the proto file
+		requirement, err := extractAuthRequirement(nil, info)
+		if err != nil {
+			return err
+		}
+
+		// If no auth requirement, skip all auth checks (public access)
+		if requirement == nil {
+			return handler(srv, ss)
+		}
+
+		// Enforce auth whenever the proto declares Bearer security or explicit permissions
+		// (treat permissions as authoritative even if the security block was omitted by mistake)
+		if requirement.RequireToken || requirement.Permission != nil {
+			err = checkAuthorizationMetadata(ss.Context(), requirement.Permission)
+			if err != nil {
+				return err
+			}
+		}
+
+		return handler(srv, ss)
 	}
 }
 

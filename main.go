@@ -120,9 +120,8 @@ func main() {
 			logrus.Infof(err.Error())
 		}
 
-		permissionExtractor := common.NewProtoPermissionExtractor()
-		unaryServerInterceptor := common.NewUnaryAuthServerIntercept(permissionExtractor)
-		serverServerInterceptor := common.NewStreamAuthServerIntercept(permissionExtractor)
+		unaryServerInterceptor := common.NewUnaryAuthServerIntercept()
+		serverServerInterceptor := common.NewStreamAuthServerIntercept()
 
 		unaryServerInterceptors = append(unaryServerInterceptors, unaryServerInterceptor)
 		streamServerInterceptors = append(streamServerInterceptors, serverServerInterceptor)
