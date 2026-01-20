@@ -60,9 +60,9 @@ const (
 )
 
 var (
-	serviceName = common.GetEnv("OTEL_SERVICE_NAME", "ExtendCustomServiceGo")
+	serviceName = "extend-app-service-extension"
 	logLevelStr = common.GetEnv("LOG_LEVEL", "info")
-	basePath	= common.GetBasePath()
+	basePath    = common.GetBasePath()
 )
 
 func parseSlogLevel(levelStr string) slog.Level {
@@ -88,8 +88,6 @@ func main() {
 	handler := slog.NewJSONHandler(os.Stdout, opts)
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
-
-	logger.Info("starting app server", "service", serviceName)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -216,6 +214,9 @@ func main() {
 	logger.Info("serving prometheus metrics", "port", metricsPort, "endpoint", metricsEndpoint)
 
 	// Set Tracer Provider
+	if val := common.GetEnv("OTEL_SERVICE_NAME", ""); val != "" {
+		serviceName = "extend-app-se-" + strings.ToLower(val)
+	}
 	tracerProvider, err := common.NewTracerProvider(serviceName)
 	if err != nil {
 		logger.Error("failed to create tracer provider", "error", err)
