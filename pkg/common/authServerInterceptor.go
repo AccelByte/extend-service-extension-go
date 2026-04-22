@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -164,30 +165,36 @@ func checkAuthorizationMetadata(ctx context.Context, permission *iam.Permission)
 	}
 
 	meta, found := metadata.FromIncomingContext(ctx)
-
 	if !found {
 		return status.Error(codes.Unauthenticated, "metadata is missing")
 	}
 
-	if _, ok := meta["authorization"]; !ok {
-		return status.Error(codes.Unauthenticated, "authorization metadata is missing")
+	var token string
+	if authHeaders, ok := meta["authorization"]; ok && len(authHeaders) > 0 {
+		token = strings.TrimPrefix(authHeaders[0], "Bearer ")
+	} else {
+		// Check for token in cookies (browser-based authentication via gRPC-Gateway)
+		token = extractTokenFromCookieMetadata(meta)
 	}
 
-	if len(meta["authorization"]) == 0 {
-		return status.Error(codes.Unauthenticated, "authorization metadata length is 0")
+	if token == "" {
+		return status.Error(codes.Unauthenticated, "authorization header or cookie is missing")
 	}
 
-	authorization := meta["authorization"][0]
-	token := strings.TrimPrefix(authorization, "Bearer ")
 	namespace := getNamespace()
-
-	err := Validator.Validate(token, permission, &namespace, nil)
-
-	if err != nil {
+	if err := Validator.Validate(token, permission, &namespace, nil); err != nil {
 		return status.Error(codes.PermissionDenied, err.Error())
 	}
-
 	return nil
+}
+
+// extractTokenFromCookieMetadata parses the "cookie" metadata key and returns the access_token value if present.
+func extractTokenFromCookieMetadata(meta metadata.MD) string {
+	r := &http.Request{Header: http.Header{"Cookie": meta.Get("cookie")}}
+	if c, err := r.Cookie("access_token"); err == nil {
+		return c.Value
+	}
+	return ""
 }
 
 func NewUnaryAuthServerIntercept() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) { // nolint
