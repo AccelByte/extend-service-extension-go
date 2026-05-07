@@ -114,6 +114,35 @@ func main() {
 		logging.StreamServerInterceptor(common.InterceptorLogger(logger), loggingOptions...),
 	}
 
+	// Set Tracer Provider
+	if val := common.GetEnv("OTEL_SERVICE_NAME", ""); val != "" {
+		serviceName = "extend-app-se-" + strings.ToLower(val)
+	}
+	tracerProvider, err := common.NewTracerProvider(serviceName)
+	if err != nil {
+		logger.Error("failed to create tracer provider", "error", err)
+		os.Exit(1)
+	}
+	otel.SetTracerProvider(tracerProvider)
+	defer func(ctx context.Context) {
+		if err := tracerProvider.Shutdown(ctx); err != nil {
+			logger.Error("failed to shutdown tracer provider", "error", err)
+			os.Exit(1)
+		}
+	}(ctx)
+
+	// Set Text Map Propagator
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			b3.New(),
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
+
+	// Set tracing HTTP transport globally so all outgoing HTTP calls are traced
+	http.DefaultTransport = common.NewTracingRoundTripper()
+
 	// Preparing the IAM authorization
 	var tokenRepo repository.TokenRepository = sdkAuth.DefaultTokenRepositoryImpl()
 	var configRepo repository.ConfigRepository = sdkAuth.DefaultConfigRepositoryImpl()
@@ -152,7 +181,7 @@ func main() {
 	// Configure IAM authorization
 	clientId := configRepo.GetClientId()
 	clientSecret := configRepo.GetClientSecret()
-	err := oauthService.LoginClient(&clientId, &clientSecret)
+	err = oauthService.LoginClient(&clientId, &clientSecret)
 	if err != nil {
 		logger.Error("error unable to login using clientId and clientSecret", "error", err)
 		os.Exit(1)
@@ -213,31 +242,6 @@ func main() {
 	}()
 	logger.Info("serving prometheus metrics", "port", metricsPort, "endpoint", metricsEndpoint)
 
-	// Set Tracer Provider
-	if val := common.GetEnv("OTEL_SERVICE_NAME", ""); val != "" {
-		serviceName = "extend-app-se-" + strings.ToLower(val)
-	}
-	tracerProvider, err := common.NewTracerProvider(serviceName)
-	if err != nil {
-		logger.Error("failed to create tracer provider", "error", err)
-		os.Exit(1)
-	}
-	otel.SetTracerProvider(tracerProvider)
-	defer func(ctx context.Context) {
-		if err := tracerProvider.Shutdown(ctx); err != nil {
-			logger.Error("failed to shutdown tracer provider", "error", err)
-			os.Exit(1)
-		}
-	}(ctx)
-
-	// Set Text Map Propagator
-	otel.SetTextMapPropagator(
-		propagation.NewCompositeTextMapPropagator(
-			b3.New(),
-			propagation.TraceContext{},
-			propagation.Baggage{},
-		),
-	)
 
 	// Start gRPC Server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcServerPort))
